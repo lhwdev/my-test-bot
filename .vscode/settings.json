@@ -1,0 +1,14 @@
+{
+  "search.exclude": {
+    "**/.yarn": true,
+    "**/.pnp.*": true
+  },
+  "eslint.nodePath": ".yarn/sdks",
+  "npm.packageManager": "yarn",
+  "eslint.packageManager": "yarn",
+  "prettier.packageManager": "yarn",
+  "typescript.tsdk": ".yarn/sdks/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  // "javascript.suggestionActions.enabled": false,
+  // "typescript.suggestionActions.enabled": false
+}
