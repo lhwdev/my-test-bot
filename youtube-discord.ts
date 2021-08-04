@@ -19,7 +19,7 @@ export async function discordPlayYoutube(data: GuildData, message: Message, id: 
     return
   }
   const link = linkFor(id)
-  const audio = ytdl(link, { filter: 'audioonly', highWaterMark: 1 << 24 }) // promise
+  const audio = ytdl(link, { filter: 'audioonly', highWaterMark: 1 << 4 }) // promise
 
   if (data.playing) {
     data.playing.stream.destroy()
