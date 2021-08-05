@@ -1,9 +1,9 @@
-import chalk from 'chalk'
-import { Message, MessageEmbed, VoiceConnection } from 'discord.js'
-import ytdl from 'ytdl-core-discord'
-import GuildData from './guild-data'
-import log from './log'
-import { getVideoInfo, linkFor } from './youtube'
+const chalk = require('chalk')
+const { Message, MessageEmbed, VoiceConnection } = require('discord.js')
+const ytdl = require('ytdl-core-discord')
+const GuildData = require('./guild-data')
+const log = require('./log')
+const { getVideoInfo, linkFor } = require('./youtube')
 
 
 let idNumCache = 0

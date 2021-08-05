@@ -5,8 +5,9 @@
     "es6": true
   },
   "parserOptions": {
-    "ecmaVersion": 2019,
-    "sourceType": "script"
+    "sourceType": "module",
+    "allowImportExportEverywhere": true,
+    "ecmaVersion": 2017
   },
   "rules": {}
 }

@@ -5,11 +5,11 @@ import { checkCommand } from './command-checker'
 import { searchVideo } from './youtube'
 import { discordPlayYoutube, stopPlaying } from './youtube-discord'
 import GuildData from './guild-data'
-import chalk from 'chalk'
+import  chalk from 'chalk'
+import { CommandHandler } from './command-handler'
 
 import readline from 'readline'
 import Inko from 'inko'
-import watch from 'node-watch'
 
 
 const rl = readline.createInterface({
@@ -29,15 +29,8 @@ function ask() {
 
 
 const client = new Client()
-const guildsData: Record<string, GuildData> = {}
-
-let config = await import('./config.json')
-
-watch('./config.json', {}, () => {
-  import('./config.json').then((c) => {
-    config = c
-  })
-})
+// const guildsData: Record<string, GuildData> = {}
+const handler = new CommandHandler(client)
 
 
 client.once('ready', () => {
@@ -46,16 +39,17 @@ client.once('ready', () => {
 })
 
 client.on('message', async message => {
-  const guild = message.guild
-  if(!guild) return
-  let data = guildsData[guild.id]
-  if(!data) {
-    data = new GuildData(guild)
-    guildsData[guild.id] = data
-  }
+  // const guild = message.guild
+  // if(!guild) return
+  // let data = guildsData[guild.id]
+  // if(!data) {
+  //   data = new GuildData(guild)
+  //   guildsData[guild.id] = data
+  // }
 
-  const reply = message.channel.send.bind(message.channel)
-  const deleteOriginal = () => { if(config.deleteOriginal) message.delete() }
+  await handler.handleMessage(message)
+
+  /* const reply = message.channel.send.bind(message.channel)
 
   try {
     // check if the message is from the bot self
@@ -149,7 +143,7 @@ client.on('message', async message => {
     }
   } catch(e) {
     reply(`와 뻐그다 ${e}`)
-  }
+  } */
 })
 
 client.login(token)

@@ -2453,6 +2453,7 @@ __metadata:
     request: ^2.88.2
     ts-node: ^10.1.0
     typescript: ^4.1.3
+    yaml: ^1.10.2
     ytdl-core: ^4.9.0
     ytdl-core-discord: ^1.3.1
   languageName: unknown
@@ -2682,6 +2683,13 @@ typescript@^4.1.3:
   version: 4.0.0
   resolution: "yallist@npm:4.0.0"
   checksum: a2960ef879af6ee67a76cae29bac9d8bffeb6e9e366c217dbd21464e7fce071933705544724f47e90ba5209cf9c83c17d5582dd04415d86747a826b2a231efb8
+  languageName: node
+  linkType: hard
+
+"yaml@npm:^1.10.2":
+  version: 1.10.2
+  resolution: "yaml@npm:1.10.2"
+  checksum: 8d72062ea3dbfd8fae3d6ddd5b741c2aeb5835a31b0719bf14fac71dd84adde0829763d6fbac46387309da00af1440194c796da5efc349b0baf9de39d82ae69e
   languageName: node
   linkType: hard
 

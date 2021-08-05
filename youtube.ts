@@ -1,5 +1,5 @@
-import fetch from 'node-fetch'
-import { youtubeApiKey } from './secrets.json'
+const fetch = require('node-fetch')
+const { youtubeApiKey } = require('./secrets.json')
 
 
 export async function searchVideo(query: string) {

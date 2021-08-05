@@ -1,4 +1,4 @@
-import { Guild, StreamDispatcher, VoiceConnection } from "discord.js"
+import { Guild, StreamDispatcher, VoiceConnection } from 'discord.js'
 
 
 type Playing = {

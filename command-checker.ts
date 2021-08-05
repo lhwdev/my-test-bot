@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+const { Message } = require('discord.js');
 
 
 export function checkCommand(message: Message) {
