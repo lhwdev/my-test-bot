@@ -1,6 +1,7 @@
 import { Message, User, TextChannel, DMChannel, NewsChannel, Guild, Client } from 'discord.js'
 import { Command, CommandItem, DirectCommandItem } from './command'
 import { CommandHandler } from './command-handler'
+import { showHelpForItem } from './command-utils'
 import config from './config'
 
 
@@ -64,9 +65,7 @@ export default class CommandParameter {
   }
 
   showHelp() {
-    const item = resolveItemAlias(this.command.items, this.name)
-    const newHelp = item.help.split('\n').map(s => `> ${s}`).join('\n')
-    this.reply(`💬 명령어 도움말(\`${this.prefix}${this.name}\`):\n${newHelp}`)
+    showHelpForItem(this.prefix + this.name, resolveItemAlias(this.command.items, this.name), this.channel)
   }
 }
 

@@ -14,7 +14,7 @@ export function logError(e: any, name: string, channel?: TextChannel | DMChannel
     if(config().detailedLogToDiscord) {
       const stack = e.stack.toString()
       const prefixed = stack.split('\n').map(s => `> ${s}`).join('\n')
-      channel?.send(`> **stacktrace**\n${prefixed}`)
+      channel?.send(`> **Stacktrace**\n${prefixed}`)
     }
   }
 }

@@ -10,6 +10,6 @@ export default command({
     hi2: { aliasTo: 'hi' }
   },
   async handle(p) {
-    await p.reply('ㅎㅇㅎㅇss')
+    await p.reply('ㅎㅇㅎㅇ')
   }
 })

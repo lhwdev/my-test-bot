@@ -1,7 +1,7 @@
 import watch from 'node-watch'
 import path from 'path'
 
-const sConfigJson = './bot-config.json'
+const sConfigJson = './config/bot-config.json'
 let conf = require(sConfigJson)
 
 watch(sConfigJson, {}, () => {

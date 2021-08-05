@@ -1,5 +1,7 @@
 import { command } from '../command'
 import dedent from 'dedent'
+import { resolveItemAlias } from '../command-parameter'
+import { showHelpForItem } from '../command-utils'
 
 
 export default command({
@@ -32,9 +34,10 @@ export default command({
       }
 
       p.reply(`💬 모든 명령어 목록:\n${result}`)
+      return
     }
 
     const spec = await p.handler.commandSpec(p.content)
-    spec.command!!.
+    showHelpForItem(spec.prefix + spec.name, resolveItemAlias(spec.command.items, p.content), p.channel)
   }
 })

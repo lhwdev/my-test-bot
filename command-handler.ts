@@ -5,13 +5,14 @@ import fs from 'fs'
 import watch from 'node-watch'
 import chalk from 'chalk'
 import { logError } from './log'
-import { resolve } from 'path'
+import { join, resolve, sep } from 'path'
 import { inspect } from 'util'
 import CommandParameter, { BotCommandError, resolveItemAlias } from './command-parameter'
 import { Command, CommandItem } from './command'
 
 
-const sCommandsYaml = './commands/commands.yml'
+const sCommandsPath = './commands'
+const sCommandsYaml = sCommandsPath + '/commands.yml'
 
 
 let commands = yaml.parse(fs.readFileSync(sCommandsYaml, 'utf-8'))
@@ -51,29 +52,35 @@ fs.watch(sCommandsYaml, 'utf-8', () => {
 })
 
 
-function loadCommandFile(caches: Record<string, any>, jsName: string, name: string): any {
-  let js = caches[name]
+function loadCommandFile(caches: Record<string, any>, jsName: string): any {
+  const path = require.resolve(sCommandsPath + '/' + jsName)
+  let js = caches[path]
   if(js === undefined) {
-    js = require(`./commands/${jsName}`)
-    caches[name] = js
+    js = require(path)
+    caches[jsName] = js
   }
   return js
 }
 
 
-async function newCommandSpec(prefix: string, name: string, jsName: string, content: string, allContent: string) {
-    const js = loadCommandFile(caches, jsName, name)
-    const command = js.default
+async function newCommandSpec(caches: Record<string, any>, prefix: string, name: string, jsName: string, content: string, allContent: string) {
+  const js = loadCommandFile(caches, jsName)
+  const command = js.default
 
-    return js.default
+  return new CommandSpec(js, command, prefix, name, jsName, content, allContent)
 }
 
 
 export class CommandSpec {
-  jsExport: any
-  command: Command
-
-  constructor(c) {}
+  constructor(
+    public jsExport: any,
+    public command: Command,
+    public prefix: string,
+    public name: string,
+    public jsName: string,
+    public content: string,
+    public allContent: string
+  ) {}
 
 
   async run(handler: CommandHandler, message: Message) {
@@ -108,18 +115,15 @@ export class CommandSpec {
 }
 
 
-const sCommandsPath = 'commands'
-
-
 export class CommandHandler {
   private commandCaches: Record<string, any> = {}
   private watcher = watch(sCommandsPath, { recursive: true }, (_type, path) => {
     if(path === undefined) return
 
     if(path.endsWith('.js') || path.endsWith('.ts')) {
-      console.log('file cache removed: ' + path)
-      delete this.commandCaches[path.slice(sCommandsPath.length + 1)] // commands/name.js
-      delete require.cache[resolve(path)]
+      const realPath = require.resolve('./' + path)
+      delete this.commandCaches[realPath]
+      delete require.cache[realPath]
     }
   })
 
@@ -139,7 +143,7 @@ export class CommandHandler {
       const names = Object.keys(map)
 
       for(const name of names) {
-        const command = loadCommandFile(this.commandCaches, map[name], name).default
+        const command = loadCommandFile(this.commandCaches, map[name]).default
         result.push([prefix, name, command.items[name]])
       }
 
@@ -185,7 +189,6 @@ export class CommandHandler {
       if(content.startsWith(prefix)) {
         const command = this.commandSpecForPrefix(content, prefix, commandMapCache[prefix])
         if(command != null) {
-          await command.load(this.commandCaches)
           return command
         } else return false
       }
@@ -194,7 +197,7 @@ export class CommandHandler {
     return null
   }
 
-  commandSpecForPrefix(allContent: string, prefix: string, commands: Record<string, string>): CommandSpec | null {
+  async commandSpecForPrefix(allContent: string, prefix: string, commands: Record<string, string>): Promise<CommandSpec | null> {
     // commands: name -> js name
     const content = allContent.slice(prefix.length).trim()
     const spaceIndex = content.indexOf(' ')
@@ -202,17 +205,20 @@ export class CommandHandler {
     // 1. fast path 1
     if(spaceIndex == -1) {
       const command = commands[content]
-      if(command !== undefined) return new CommandSpec(prefix, content, command, '', allContent)
+      if(command !== undefined)
+        return await newCommandSpec(this.commandCaches, prefix, content, command, '', allContent)
     }
 
     // 2. fast path 2
     const oneWordName = content.slice(0, spaceIndex)
     const oneWordCommand = commands[oneWordName]
-    if(oneWordCommand !== undefined) return new CommandSpec(prefix, oneWordName, oneWordCommand, content.slice(spaceIndex + 1).trim(), allContent)
+    if(oneWordCommand !== undefined)
+      return await newCommandSpec(this.commandCaches, prefix, oneWordName, oneWordCommand, content.slice(spaceIndex + 1).trim(), allContent)
 
     // 3. slow path
     for(const name of Object.keys(commands)) {
-      if(content.startsWith(name)) return new CommandSpec(prefix, name, commands[name], content.slice(name.length).trim(), allContent)
+      if(content.startsWith(name))
+        return await newCommandSpec(this.commandCaches, prefix, name, commands[name], content.slice(name.length).trim(), allContent)
     }
 
     return null
