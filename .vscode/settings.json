@@ -6,7 +6,7 @@
   "eslint.nodePath": ".yarn/sdks",
   "npm.packageManager": "yarn",
   "eslint.packageManager": "yarn",
-  "prettier.packageManager": "yarn",
+  "eslint.workingDirectories": ["./"],
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   // "javascript.suggestionActions.enabled": false,

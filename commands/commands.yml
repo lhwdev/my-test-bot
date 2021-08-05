@@ -1,6 +1,8 @@
 commands:
   '!':
-    youtube: [play, stop, skip, volume]
-    hi: [hi, hi2, hi4]
+    help: [help]
+    # youtube: [play, stop, skip, volume]
+    hi: [hi, hi2]
+    cleanup-mine: [cleanup]
 
 

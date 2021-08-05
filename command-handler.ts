@@ -7,6 +7,8 @@ import chalk from 'chalk'
 import { logError } from './log'
 import { resolve } from 'path'
 import { inspect } from 'util'
+import CommandParameter, { BotCommandError, resolveItemAlias } from './command-parameter'
+import { Command, CommandItem } from './command'
 
 
 const sCommandsYaml = './commands/commands.yml'
@@ -49,38 +51,35 @@ fs.watch(sCommandsYaml, 'utf-8', () => {
 })
 
 
-
-type Command = {
-  name?: string
-  handle: (parameter: CommandParameter) => Promise<void>
+function loadCommandFile(caches: Record<string, any>, jsName: string, name: string): any {
+  let js = caches[name]
+  if(js === undefined) {
+    js = require(`./commands/${jsName}`)
+    caches[name] = js
+  }
+  return js
 }
 
 
-export function command(command: Command): Command { // only exists for linting
-  return command
+async function newCommandSpec(prefix: string, name: string, jsName: string, content: string, allContent: string) {
+    const js = loadCommandFile(caches, jsName, name)
+    const command = js.default
+
+    return js.default
 }
 
 
 export class CommandSpec {
-  jsExport?: any
-  command?: Command
+  jsExport: any
+  command: Command
 
-  constructor(public name: string, public jsName: string, public content: string, public allContent: string) {}
+  constructor(c) {}
 
-  async load(caches: Record<string, any>) {
-    let js = caches[this.name]
-    if(js === undefined) {
-      js = require(`./commands/${this.jsName}`)
-    }
 
-    this.jsExport = js
-    this.command = js.default
-  }
-
-  async run(message: Message) {
+  async run(handler: CommandHandler, message: Message) {
     if(!this.command) throw Error('command was not loaded. Load with CommandSpec.load(caches)')
+    const parameter = new CommandParameter(handler, this.command, message, this.prefix, this.name, this.content, this.allContent)
     try {
-      const parameter = new CommandParameter(message, this.name, this.content, this.allContent)
       await this.command.handle(parameter)
 
       const delOrder = config().deleteCommand
@@ -89,9 +88,21 @@ export class CommandSpec {
         message.delete()
       }
     } catch(e) {
-      logError(e, `command ${this.name}.run(${message})`, message.channel)
-      console.error('command:')
-      console.dir(this.command)
+      if(e instanceof BotCommandError) {
+        let content = `⚠ 잘못된 명령이에요. ${e.message}`
+        if(config().detailedUserErrorToDiscord) {
+          content += `\n> \`${this.name}\`: 찾을 수 없는 명령어(비슷한 명령어: )`
+        }
+        message.channel.send(content)
+
+        if(e.params?.showHelp) {
+          parameter.showHelp()
+        }
+      } else {
+        logError(e, `command ${this.name}.run(${message})`, message.channel)
+        console.error('command:')
+        console.dir(this.command)
+      }
     }
   }
 }
@@ -99,16 +110,16 @@ export class CommandSpec {
 
 const sCommandsPath = 'commands'
 
+
 export class CommandHandler {
   private commandCaches: Record<string, any> = {}
   private watcher = watch(sCommandsPath, { recursive: true }, (_type, path) => {
     if(path === undefined) return
 
-    if(path.endsWith('.js')) {
+    if(path.endsWith('.js') || path.endsWith('.ts')) {
+      console.log('file cache removed: ' + path)
       delete this.commandCaches[path.slice(sCommandsPath.length + 1)] // commands/name.js
-      try {
       delete require.cache[resolve(path)]
-      } catch(e) { logError(e, 'require.resolve')}
     }
   })
 
@@ -120,90 +131,92 @@ export class CommandHandler {
   }
 
 
+  // for the sake of listing commands: !help
+  async listAllCommands(): Promise<[string, string, CommandItem][]> {
+    const result: [string, string, CommandItem][] = []
+    for(const prefix of Object.keys(commandMapCache)) {
+      const map = commandMapCache[prefix]
+      const names = Object.keys(map)
+
+      for(const name of names) {
+        const command = loadCommandFile(this.commandCaches, map[name], name).default
+        result.push([prefix, name, command.items[name]])
+      }
+
+    }
+
+    return result
+  }
+
+
   async handleMessage(message: Message): Promise<boolean> {
     try {
-      const content = message.content
 
-      if(content == '!dump') {
+      if(config().noRecurse && message.author == message.client.user) {
+        return false
+      }
+
+      if(message.content == '!dump') {
         await message.channel.send(inspect(commands, false, 5))
         return true
       }
 
-      for(const prefix of Object.keys(commandMapCache)) {
-        if(content.startsWith(prefix)) {
-          const command = this.handleForPrefix(message, prefix, commandMapCache[prefix])
-          if(command != null) {
-            await command.load(this.commandCaches)
-            await command.run(message)
-            return true
-          }
-        }
+      const spec = await this.commandSpec(message.content)
+      if(spec == false) {
+        message.channel.send('⚠ 알 수 없는 명령어입니다. `!help -l`를 입력해서 가능한 명령어들을 확인하세요.')
+        return true
+      }
+
+      if(spec != null) {
+        await spec.run(this, message)
+        return true
       }
 
       return false
     } catch(e) {
       console.log(chalk`{red handleMessage: error: ${e}}`)
       if(e?.stack) console.log(chalk`{red ${e.stack}}`)
-      return false
+      return true
     }
   }
 
-  handleForPrefix(message: Message, prefix: string, commands: Record<string, string>): CommandSpec | null {
+  async commandSpec(content: string): Promise<CommandSpec | false | null> {
+    for(const prefix of Object.keys(commandMapCache)) {
+      if(content.startsWith(prefix)) {
+        const command = this.commandSpecForPrefix(content, prefix, commandMapCache[prefix])
+        if(command != null) {
+          await command.load(this.commandCaches)
+          return command
+        } else return false
+      }
+    }
+
+    return null
+  }
+
+  commandSpecForPrefix(allContent: string, prefix: string, commands: Record<string, string>): CommandSpec | null {
     // commands: name -> js name
-    const allContent = message.content
     const content = allContent.slice(prefix.length).trim()
     const spaceIndex = content.indexOf(' ')
 
     // 1. fast path 1
     if(spaceIndex == -1) {
       const command = commands[content]
-      if(command !== undefined) return new CommandSpec(content, command, '', allContent)
+      if(command !== undefined) return new CommandSpec(prefix, content, command, '', allContent)
     }
 
     // 2. fast path 2
     const oneWordName = content.slice(0, spaceIndex)
     const oneWordCommand = commands[oneWordName]
-    if(oneWordCommand !== undefined) return new CommandSpec(oneWordName, oneWordCommand, content.slice(spaceIndex + 1).trim(), allContent)
+    if(oneWordCommand !== undefined) return new CommandSpec(prefix, oneWordName, oneWordCommand, content.slice(spaceIndex + 1).trim(), allContent)
 
     // 3. slow path
     for(const name of Object.keys(commands)) {
-      if(content.startsWith(name)) return new CommandSpec(name, commands[name], content.slice(name.length).trim(), allContent)
+      if(content.startsWith(name)) return new CommandSpec(prefix, name, commands[name], content.slice(name.length).trim(), allContent)
     }
 
-    message.channel.send('⚠ 알 수 없는 명령어입니다.')
     return null
   }
 }
 
 
-export class CommandParameter {
-  public deletedOriginal = false
-
-
-  constructor(public message: Message, public name: string, public content: string, public allContent: string) {}
-
-  get author(): User {
-    return this.message.author
-  }
-
-  get channel(): TextChannel | DMChannel | NewsChannel {
-    return this.message.channel
-  }
-
-  get guild(): Guild | null {
-    return this.message.guild
-  }
-
-
-  async reply(content: any): Promise<Message> {
-    return await this.channel.send(content)
-  }
-
-
-  async deleteOriginal() {
-    if(config().deleteOriginal) {
-      await this.message.delete()
-      this.deletedOriginal = true
-    }
-  }
-}
