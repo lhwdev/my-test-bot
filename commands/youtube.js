@@ -5,7 +5,9 @@ import CommandParameter from '../command-parameter'
 
 export default command({
   name: 'youtube',
-  items: {}, // TODO
+  items: {
+    
+  }, // TODO
 
   async handle(p) {
     switch(p.name) {}

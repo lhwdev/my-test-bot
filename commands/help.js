@@ -28,7 +28,7 @@ export default command({
       let result = ''
 
       for (const [prefix, name, command] of commands) {
-        if(command.aliasTo) continue
+        if('aliasTo' in command) continue
         const aliases = commands.filter(c => c[2].aliasTo === name).map(c => c[1]).join(', ')
         result += `> **${prefix}${name}**${aliases == ''? '' : ' (' + aliases + ')'}: ${command.description}\n`
       }

@@ -9,39 +9,93 @@ import { join, resolve, sep } from 'path'
 import { inspect } from 'util'
 import CommandParameter, { BotCommandError, resolveItemAlias } from './command-parameter'
 import { Command, CommandItem } from './command'
+import Fuse from 'fuse.js'
 
 
 const sCommandsPath = './commands'
 const sCommandsYaml = sCommandsPath + '/commands.yml'
 
+type CommandMetadata = {
+  name: string,
+  prefix: string,
+  aliasTo?: string
+}
+
 
 let commands = yaml.parse(fs.readFileSync(sCommandsYaml, 'utf-8'))
-let commandMapCache: Record<string, Record<string, string>>
+let commandMapCache: Record<string, Record<string, string>> // name -> jsName
+let commandInversedCache: Record<string, Record<string, string[]>> // jsName -> name
+let allCommands: string[]
+let allCommandInfos: CommandMetadata[]
+
+
+const commandSearchFuse: Fuse<string> = new Fuse([])
+
 
 function createCommandMapCache() {
+  function putArray(to, key, value) {
+    const last = to[key]
+    if(last == null) {
+      to[key] = [value]
+    } else {
+      to[key].push(value)
+    }
+  }
+
   try {
     const cache = {}
+    const cacheInversed = {}
+    const all: string[] = []
+    const allInfos: CommandMetadata[] = []
     const map = commands.commands
+
     for(const prefix of Object.keys(map)) {
       const prefixData = map[prefix]
       const prefixMap = {}
-      for(const fileName of Object.keys(prefixData)) {
-        const names = prefixData[fileName]
+      const prefixInversedMap = {}
+
+      for(const jsFileName of Object.keys(prefixData)) {
+        const names = prefixData[jsFileName]
         for(const name of names) {
-          prefixMap[name] = fileName
+          if(typeof name == 'string') { // 1. - name
+            prefixMap[name] = jsFileName
+            putArray(prefixInversedMap, jsFileName, name)
+            all.push(prefix + name)
+            allInfos.push({ prefix, name })
+          } else { // 2. - name: [alias1, alias2, alias3, ...]
+            const originalNames = Object.keys(name)
+            if(originalNames.length != 1) throw Error('what?')
+            const originalName = originalNames[0]
+            const aliases = name[originalName]
+            prefixMap[originalName] = jsFileName
+
+            for(const alias of aliases) {
+              prefixMap[alias] = jsFileName
+              putArray(prefixInversedMap, jsFileName, alias)
+              all.push(prefix + alias)
+              allInfos.push({ prefix, name: alias, aliasTo: originalName })
+            }
+          }
         }
 
       }
 
       cache[prefix] = prefixMap
+      cacheInversed[prefix] = prefixInversedMap
     }
     commandMapCache = cache
+    commandInversedCache = cacheInversed
+    allCommands = all
+    allCommandInfos = allInfos
+    commandSearchFuse.setCollection(allCommands)
+
   } catch(e) {
     logError(e, 'createCommandMapCache')
   }
 }
 
 createCommandMapCache()
+
 
 
 fs.watch(sCommandsYaml, 'utf-8', () => {
@@ -52,22 +106,58 @@ fs.watch(sCommandsYaml, 'utf-8', () => {
 })
 
 
-function loadCommandFile(caches: Record<string, any>, jsName: string): any {
+function loadCommandFile(caches: Record<string, any>, prefix: string, jsName: string): any {
   const path = require.resolve(sCommandsPath + '/' + jsName)
   let js = caches[path]
   if(js === undefined) {
     js = require(path)
     caches[jsName] = js
   }
+
+  validateCommand(js.default, prefix, jsName)
+
   return js
+}
+
+export function validateCommand(command: any, prefix: string, jsName: string) {
+  if(!('items' in command)) throw new BotCommandError('command-spec', `Command '${jsName}' does not have 'items' defined.`)
+
+  const names = commandInversedCache[prefix][jsName]
+  const items = Object.keys(command.items)
+  const missing = names.filter(name => name !in items)
+
+  if(missing.length != 0) {
+    throw new BotCommandError('command-spec', `Command '${jsName} does not have some items defined: ${missing.join(', ')}.`)
+  }
 }
 
 
 async function newCommandSpec(caches: Record<string, any>, prefix: string, name: string, jsName: string, content: string, allContent: string) {
-  const js = loadCommandFile(caches, jsName)
+  const js = loadCommandFile(caches, prefix, jsName)
   const command = js.default
 
   return new CommandSpec(js, command, prefix, name, jsName, content, allContent)
+}
+
+function wrongCommand(name: string) {
+  let content = ''
+  content += `명령어 \`${name}\`를 찾을 수 없습니다. \`!help -l\`을 입력해 가능한 명령어를 확인하세요.`
+
+  // operate fuzzy search on commands
+  const searched = commandSearchFuse.search(name)
+  if(searched.length > 0) {
+    content += ' (비슷한 명령어: '
+    for(const s of searched) {
+      const info = allCommandInfos[s.refIndex]
+      const commandLine = info.prefix + info.name
+      content += commandLine
+      if(info.aliasTo !== undefined) content += `(=> ${info.aliasTo})`
+      content += ', '
+    }
+    content = content.slice(undefined, -2)
+    content += ')'
+  }
+  return content
 }
 
 
@@ -82,7 +172,6 @@ export class CommandSpec {
     public allContent: string
   ) {}
 
-
   async run(handler: CommandHandler, message: Message) {
     if(!this.command) throw Error('command was not loaded. Load with CommandSpec.load(caches)')
     const parameter = new CommandParameter(handler, this.command, message, this.prefix, this.name, this.content, this.allContent)
@@ -96,10 +185,22 @@ export class CommandSpec {
       }
     } catch(e) {
       if(e instanceof BotCommandError) {
-        let content = `⚠ 잘못된 명령이에요. ${e.message}`
-        if(config().detailedUserErrorToDiscord) {
-          content += `\n> \`${this.name}\`: 찾을 수 없는 명령어(비슷한 명령어: )`
+
+        let content = `⚠ [잘못된 명령어] ${e.message}`
+        if(config().detailedUserErrorToDiscord) switch(e.type) {
+          case 'no-command': {
+            content += '> '
+            content += wrongCommand(this.name)
+            break
+          }
+          case 'parameter': break
+          case 'exec': break
+          case 'command-spec': {
+            content += `\n> * 명령어 사양이 잘못되었습니다.`
+            break
+          }
         }
+
         message.channel.send(content)
 
         if(e.params?.showHelp) {
@@ -110,6 +211,7 @@ export class CommandSpec {
         console.error('command:')
         console.dir(this.command)
       }
+
     }
   }
 }
@@ -143,8 +245,8 @@ export class CommandHandler {
       const names = Object.keys(map)
 
       for(const name of names) {
-        const command = loadCommandFile(this.commandCaches, map[name]).default
-        result.push([prefix, name, command.items[name]])
+        const command = loadCommandFile(this.commandCaches, prefix, map[name]).default!! as Command
+        result.push([prefix, name, command.items[name]!!])
       }
 
     }
@@ -156,8 +258,12 @@ export class CommandHandler {
   async handleMessage(message: Message): Promise<boolean> {
     try {
 
-      if(config().noRecurse && message.author == message.client.user) {
-        return false
+      if(message.author.bot) {
+        if(config().noRecurse && message.author == message.client.user) {
+          // no-op
+        } else {
+          return false
+        }
       }
 
       if(message.content == '!dump') {
@@ -167,7 +273,9 @@ export class CommandHandler {
 
       const spec = await this.commandSpec(message.content)
       if(spec == false) {
-        message.channel.send('⚠ 알 수 없는 명령어입니다. `!help -l`를 입력해서 가능한 명령어들을 확인하세요.')
+        const c = message.content
+        const index = c.indexOf(' ')
+        message.channel.send('⚠ ' + wrongCommand(index == -1 ? c : c.slice(0, index)))
         return true
       }
 
@@ -178,7 +286,7 @@ export class CommandHandler {
 
       return false
     } catch(e) {
-      console.log(chalk`{red handleMessage: error: ${e}}`)
+      console.log(chalk`{red handleMessage: error: ${e} ${inspect(e)}}`)
       if(e?.stack) console.log(chalk`{red ${e.stack}}`)
       return true
     }
@@ -187,10 +295,12 @@ export class CommandHandler {
   async commandSpec(content: string): Promise<CommandSpec | false | null> {
     for(const prefix of Object.keys(commandMapCache)) {
       if(content.startsWith(prefix)) {
-        const command = this.commandSpecForPrefix(content, prefix, commandMapCache[prefix])
+        const command = await this.commandSpecForPrefix(content, prefix, commandMapCache[prefix])
         if(command != null) {
           return command
-        } else return false
+        } else {
+          return false
+        }
       }
     }
 
@@ -217,12 +327,13 @@ export class CommandHandler {
 
     // 3. slow path
     for(const name of Object.keys(commands)) {
-      if(content.startsWith(name))
+      if(content.startsWith(name + ' '))
         return await newCommandSpec(this.commandCaches, prefix, name, commands[name], content.slice(name.length).trim(), allContent)
     }
 
     return null
   }
 }
+
 
 

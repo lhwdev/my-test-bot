@@ -5,10 +5,14 @@ import { showHelpForItem } from './command-utils'
 import config from './config'
 
 
-type BotCommandErrorType = 'no-command' | 'parameter' | 'exec'
+type BotCommandErrorType = 'no-command' | 'parameter' | 'exec' | 'command-spec'
 
 export class BotCommandError {
   constructor(public type: BotCommandErrorType, public message: string, public params?: any) {}
+
+  toString() {
+    return `BotCommandError(${this.type}): ${this.message}${this.params !== undefined? '\n' + this.params : ''}`
+  }
 }
 
 
@@ -50,10 +54,20 @@ export default class CommandParameter {
 
 
   async deleteOriginal() {
-    if(config().deleteOriginal) {
+    if(config().deleteOriginal && !this.deletedOriginal) {
       await this.message.delete()
       this.deletedOriginal = true
     }
+  }
+
+  async delete() {
+    await this.message.delete()
+    this.deletedOriginal = true
+  }
+
+  async replace(content: any) {
+    await this.delete()
+    await this.reply(content)
   }
 
   error(type: BotCommandErrorType, message: string) {

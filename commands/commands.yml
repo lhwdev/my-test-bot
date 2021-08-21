@@ -1,8 +1,15 @@
 commands:
   '!':
-    help: [help]
+    help:
+      - help
     # youtube: [play, stop, skip, volume]
-    hi: [hi, hi2]
-    cleanup-mine: [cleanup]
+    hi:
+      - hi: [hi2]
+    cleanup-mine:
+      - cleanup: [치워]
+    eval:
+      - eval
+    k2e-conv:
+      - k2e: [ㅏ2ㄷ, ㅏㄷ, ㅏ]
 
 
