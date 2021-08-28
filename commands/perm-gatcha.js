@@ -27,7 +27,7 @@ export default command({
   },
   async handle(p) {
     if(p.content === '소스') {
-      await p.reply('```js\n' + (await readFile(__filename, 'utf-8')).replace(/```/g,'\\`\\`\\`') + '\n```')
+      await p.reply('https://github.com/lhwdev/my-test-bot/tree/master/commands/perm-gatcha.js 이거 보세요!')
       return
     }
     if(p.content == '-c') {
