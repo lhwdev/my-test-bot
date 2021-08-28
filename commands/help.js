@@ -1,6 +1,6 @@
 import { command } from '../command'
 import dedent from 'dedent'
-import { resolveItemAlias } from '../command-parameter'
+import { BotCommandError, resolveItemAlias } from '../command-parameter'
 import { showHelpForItem } from '../command-utils'
 
 
@@ -27,10 +27,12 @@ export default command({
       const commands = await p.handler.listAllCommands()
       let result = ''
 
-      for (const [prefix, name, command] of commands) {
-        if('aliasTo' in command) continue
-        const aliases = commands.filter(c => c[2].aliasTo === name).map(c => c[1]).join(', ')
-        result += `> **${prefix}${name}**${aliases == ''? '' : ' (' + aliases + ')'}: ${command.description}\n`
+      for (const info of commands) {
+        const item = info.loaded.command.items[info.meta.name]
+        if('aliasTo' in info.meta) continue
+        if(item.indexed === false) continue
+        const aliases = commands.filter(c => c.meta.aliasTo === info.meta.name).map(c => c.meta.name).join(', ')
+        result += `> **${info.meta.prefix}${info.meta.name}**${aliases == ''? '' : ' (' + aliases + ')'}: ${item ? item.description : '(도움말 없음)'}\n`
       }
 
       p.reply(`💬 모든 명령어 목록:\n${result}`)
@@ -38,6 +40,16 @@ export default command({
     }
 
     const spec = await p.handler.commandSpec(p.content)
-    showHelpForItem(spec.prefix + spec.name, resolveItemAlias(spec.command.items, p.content), p.channel)
+    if (spec == null) throw new BotCommandError(
+      'exec',
+      dedent`
+        알 수 없는 명령어입니다. \`!help -l\`을 입력해서 확인해보세요.
+        **참고: \`!help\` 뒤에는 ! 같은 접두사가 붙은 명령어를 써야 합니다.**
+      `
+    )
+    if(!spec) {
+      throw new BotCommandError('exec', '알 수 없는 명령어입니다. `!help -l`을 입력해서 확인해보세요.')
+    }
+    await showHelpForItem(spec.prefix + spec.name, resolveItemAlias(spec.command.items, spec.name), p.channel)
   }
 })

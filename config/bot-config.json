@@ -3,5 +3,12 @@
   "deleteOriginal": true,
   "detailedLogToDiscord": true,
   "detailedUserErrorToDiscord": true,
-  "noRecurse": true
+  "noRecurse": false,
+  "maxLimit": 1990,
+  "botAdminUsers": [
+    "551597391741059083"
+  ],
+  "commands.cleanup-mine": {
+    "cleanCommand": true
+  }
 }

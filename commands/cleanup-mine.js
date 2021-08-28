@@ -1,5 +1,6 @@
 import { Collection } from 'discord.js'
 import { command } from '../command'
+import config from '../config'
 import { delay } from '../utils'
 
 
@@ -23,12 +24,21 @@ export default command({
 
     const progress = await p.reply('🔨 제가 쓴 글들을 삭제합니다.')
 
-    const messagesMap = p.channel.messages.cache.filter(m => m.author == botUser && m.id != progress.id)
+    const messagesMap = p.channel.messages.cache.filter(m =>
+      m.author == botUser && m.id != progress.id
+    )
     const messagesList = Array.from(messagesMap.entries())
 
     const messages = new Collection(messagesList.slice(0, count))
     await p.channel.bulkDelete(messages)
     await p.delete()
+
+    if (config()['commands.cleanup-mine'].cleanCommand) {
+      const target = p.handler.userInputs.slice(0, Math.min(p.handler.userInputs.length, 100))
+      await progress.edit('🔨 명령어 입력을 삭제합니다.')
+      await p.channel.bulkDelete(target)
+      p.handler.userInputs = []
+    }
 
     progress.edit('✅ 제가 쓴 글들을 삭제했습니다.')
     await delay(2000)

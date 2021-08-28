@@ -14,9 +14,12 @@ export default command({
   },
   async handle(p) {
     switch(p.name) {
-      case 'k2e':
-      case '' {
+      case 'k2e': {
         await p.reply(inko.ko2en(p.content))
+        break
+      }
+      case 'e2k': {
+        await p.reply(inko.en2ko(p.content))
         break
       }
       default: {

@@ -1,15 +1,30 @@
 commands:
   '!':
+    # js name:
+    # - command name
+    # - command name: [alias1, alias2, alias3, ...]
     help:
       - help
     # youtube: [play, stop, skip, volume]
     hi:
-      - hi: [hi2]
+      - hi
     cleanup-mine:
-      - cleanup: [치워]
+      - cleanup: [치워, 청소, 청소기]
     eval:
       - eval
+      - evalp
+    id:
+      - id
+    config-edit:
+      - config
     k2e-conv:
-      - k2e: [ㅏ2ㄷ, ㅏㄷ, ㅏ]
-
-
+      - k2e: [ㅇ, ㅏ2ㄷ, ㅏㄷ, ㅏ]
+      - e2k: [ek, e, k]
+    select:
+      - select: [선택기, 골라]
+    delete-chat:
+      - delete: [뭉탱이삭제]
+    remote:
+      - remote
+    perm-gatcha:
+      - 권한가챠

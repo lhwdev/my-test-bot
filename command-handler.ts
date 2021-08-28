@@ -1,13 +1,12 @@
-import { Channel, Client, DMChannel, Guild, Message, NewsChannel, TextChannel, User } from 'discord.js'
+import { Client, Message } from 'discord.js'
 import config from './config'
 import yaml from 'yaml'
-import fs from 'fs'
+import fs, { realpath } from 'fs'
 import watch from 'node-watch'
 import chalk from 'chalk'
 import { logError } from './log'
-import { join, resolve, sep } from 'path'
 import { inspect } from 'util'
-import CommandParameter, { BotCommandError, resolveItemAlias } from './command-parameter'
+import CommandParameter, { BotCommandError } from './command-parameter'
 import { Command, CommandItem } from './command'
 import Fuse from 'fuse.js'
 
@@ -16,15 +15,33 @@ const sCommandsPath = './commands'
 const sCommandsYaml = sCommandsPath + '/commands.yml'
 
 type CommandMetadata = {
+  jsName: string,
   name: string,
   prefix: string,
   aliasTo?: string
 }
 
+type CommandFileMetadata = {
+  jsName: string,
+  prefix: string,
+  mainName: string
+}
+
+type LoadedCommandFile = {
+  meta: CommandFileMetadata,
+  exports: any,
+  command: Command
+}
+
+type CommandInfo = {
+  meta: CommandMetadata,
+  loaded: LoadedCommandFile
+}
+
 
 let commands = yaml.parse(fs.readFileSync(sCommandsYaml, 'utf-8'))
-let commandMapCache: Record<string, Record<string, string>> // name -> jsName
-let commandInversedCache: Record<string, Record<string, string[]>> // jsName -> name
+let commandMapCache: Record<string, Record<string, CommandMetadata>> // prefix -> name -> jsName
+let commandInversedCache: Record<string, Record<string, CommandMetadata[]>> // prefix -> jsName -> name
 let allCommands: string[]
 let allCommandInfos: CommandMetadata[]
 
@@ -33,7 +50,7 @@ const commandSearchFuse: Fuse<string> = new Fuse([])
 
 
 function createCommandMapCache() {
-  function putArray(to, key, value) {
+  function putArray<K extends string | number | symbol, V>(to: Record<K, V[]>, key: K, value: V) {
     const last = to[key]
     if(last == null) {
       to[key] = [value]
@@ -43,37 +60,45 @@ function createCommandMapCache() {
   }
 
   try {
-    const cache = {}
-    const cacheInversed = {}
+    const cache: Record<string, Record<string, CommandMetadata>> = {}
+    const cacheInversed: Record<string, Record<string, CommandMetadata[]>> = {}
     const all: string[] = []
     const allInfos: CommandMetadata[] = []
     const map = commands.commands
 
     for(const prefix of Object.keys(map)) {
       const prefixData = map[prefix]
-      const prefixMap = {}
-      const prefixInversedMap = {}
+      const prefixMap: Record<string, CommandMetadata> = {}
+      const prefixInversedMap: Record<string, CommandMetadata[]> = {}
 
       for(const jsFileName of Object.keys(prefixData)) {
         const names = prefixData[jsFileName]
         for(const name of names) {
           if(typeof name == 'string') { // 1. - name
-            prefixMap[name] = jsFileName
-            putArray(prefixInversedMap, jsFileName, name)
+            // original (only)
+            const meta = { jsName: jsFileName, prefix, name }
+            prefixMap[name] = meta
+            putArray(prefixInversedMap, jsFileName, meta)
             all.push(prefix + name)
-            allInfos.push({ prefix, name })
+            allInfos.push(meta)
           } else { // 2. - name: [alias1, alias2, alias3, ...]
             const originalNames = Object.keys(name)
-            if(originalNames.length != 1) throw Error('what?')
+            if(originalNames.length != 1) throw Error('what?') // TODO: options here
             const originalName = originalNames[0]
             const aliases = name[originalName]
-            prefixMap[originalName] = jsFileName
+            
+            // original
+            const meta = { jsName: jsFileName, prefix, name: originalName }
+            prefixMap[originalName] = meta
+            putArray(prefixInversedMap, jsFileName, meta)
+            allInfos.push(meta)
 
             for(const alias of aliases) {
-              prefixMap[alias] = jsFileName
-              putArray(prefixInversedMap, jsFileName, alias)
+              const aliasMeta = { jsName: jsFileName, prefix, name: alias, aliasTo: originalName }
+              prefixMap[alias] = aliasMeta
+              putArray(prefixInversedMap, jsFileName, aliasMeta)
               all.push(prefix + alias)
-              allInfos.push({ prefix, name: alias, aliasTo: originalName })
+              allInfos.push(aliasMeta)
             }
           }
         }
@@ -106,37 +131,38 @@ fs.watch(sCommandsYaml, 'utf-8', () => {
 })
 
 
-function loadCommandFile(caches: Record<string, any>, prefix: string, jsName: string): any {
-  const path = require.resolve(sCommandsPath + '/' + jsName)
-  let js = caches[path]
-  if(js === undefined) {
-    js = require(path)
-    caches[jsName] = js
+function findCommandFile(caches: Record<string, LoadedCommandFile>, meta: CommandFileMetadata): LoadedCommandFile {
+  const path = require.resolve(sCommandsPath + '/' + meta.jsName)
+  let loaded = caches[path]
+  if(loaded === undefined) {
+    const js = require(path)
+    loaded = { meta, exports: js, command: js.default }
+    caches[meta.jsName] = loaded
+
+    validateCommand(loaded.command, meta)
   }
 
-  validateCommand(js.default, prefix, jsName)
-
-  return js
+  return loaded
 }
 
-export function validateCommand(command: any, prefix: string, jsName: string) {
-  if(!('items' in command)) throw new BotCommandError('command-spec', `Command '${jsName}' does not have 'items' defined.`)
+export function validateCommand(command: Command, meta: CommandFileMetadata) {
+  if(!('items' in command)) throw new BotCommandError('command-spec', `Command '${meta.jsName}' does not have 'items' defined.`)
 
-  const names = commandInversedCache[prefix][jsName]
+  const names = commandInversedCache[meta.prefix][meta.jsName]
   const items = Object.keys(command.items)
-  const missing = names.filter(name => name !in items)
+  const missing = names.filter(name => name.name !in items)
 
   if(missing.length != 0) {
-    throw new BotCommandError('command-spec', `Command '${jsName} does not have some items defined: ${missing.join(', ')}.`)
+    throw new BotCommandError('command-spec', `Command '${meta.jsName} does not have some items defined: ${missing.join(', ')}.`)
   }
 }
 
 
-async function newCommandSpec(caches: Record<string, any>, prefix: string, name: string, jsName: string, content: string, allContent: string) {
-  const js = loadCommandFile(caches, prefix, jsName)
-  const command = js.default
 
-  return new CommandSpec(js, command, prefix, name, jsName, content, allContent)
+
+async function newCommandSpec(caches: Record<string, any>, meta: CommandMetadata, content: string, allContent: string) {
+  const loaded = findCommandFile(caches, { prefix: meta.prefix, jsName: meta.jsName, mainName: meta.aliasTo ?? meta.name })
+  return new CommandSpec({ meta, loaded }, content, allContent)
 }
 
 function wrongCommand(name: string) {
@@ -150,8 +176,8 @@ function wrongCommand(name: string) {
     for(const s of searched) {
       const info = allCommandInfos[s.refIndex]
       const commandLine = info.prefix + info.name
-      content += commandLine
-      if(info.aliasTo !== undefined) content += `(=> ${info.aliasTo})`
+      content += `\`${commandLine}\``
+      if(info.aliasTo !== undefined) content += `(=> \`${info.aliasTo}\`)`
       content += ', '
     }
     content = content.slice(undefined, -2)
@@ -162,21 +188,50 @@ function wrongCommand(name: string) {
 
 
 export class CommandSpec {
+  public name: string
+
   constructor(
-    public jsExport: any,
-    public command: Command,
-    public prefix: string,
-    public name: string,
-    public jsName: string,
+    public info: CommandInfo,
     public content: string,
     public allContent: string
-  ) {}
+  ) {
+    this.name = info.meta.aliasTo ?? info.meta.name
+  }
+
+  get meta() {
+    return this.info.meta
+  }
+  
+  get loaded() {
+    return this.info.loaded
+  }
+
+  get fileMeta() {
+    return this.loaded.meta
+  }
+
+  get command() {
+    return this.loaded.command
+  }
+
+  get prefix() {
+    return this.meta.prefix
+  }
+
+  get originalName() {
+    return this.meta.name
+  }
+
+  get jsName() {
+    return this.meta.jsName
+  }
 
   async run(handler: CommandHandler, message: Message) {
     if(!this.command) throw Error('command was not loaded. Load with CommandSpec.load(caches)')
     const parameter = new CommandParameter(handler, this.command, message, this.prefix, this.name, this.content, this.allContent)
     try {
-      await this.command.handle(parameter)
+      const result = this.command.handle(parameter)
+      if(result instanceof Promise) await result
 
       const delOrder = config().deleteCommand
 
@@ -185,8 +240,7 @@ export class CommandSpec {
       }
     } catch(e) {
       if(e instanceof BotCommandError) {
-
-        let content = `⚠ [잘못된 명령어] ${e.message}`
+        let content = e.params?.noHead ?  e.message : `⚠ [잘못된 명령어] ${e.message}`
         if(config().detailedUserErrorToDiscord) switch(e.type) {
           case 'no-command': {
             content += '> '
@@ -222,10 +276,12 @@ export class CommandHandler {
   private watcher = watch(sCommandsPath, { recursive: true }, (_type, path) => {
     if(path === undefined) return
 
-    if(path.endsWith('.js') || path.endsWith('.ts')) {
+    if(path.endsWith('.js') || path.endsWith('.ts')) try {
       const realPath = require.resolve('./' + path)
       delete this.commandCaches[realPath]
       delete require.cache[realPath]
+    } catch(e) {
+      console.log(`[hot reload] error with file ${path}`)
     }
   })
 
@@ -238,31 +294,39 @@ export class CommandHandler {
 
 
   // for the sake of listing commands: !help
-  async listAllCommands(): Promise<[string, string, CommandItem][]> {
-    const result: [string, string, CommandItem][] = []
+  async listAllCommands(): Promise<CommandInfo[]> {
+    const result: CommandInfo[] = []
     for(const prefix of Object.keys(commandMapCache)) {
-      const map = commandMapCache[prefix]
-      const names = Object.keys(map)
+      const metas = commandMapCache[prefix]
+      const names = Object.keys(metas)
 
       for(const name of names) {
-        const command = loadCommandFile(this.commandCaches, prefix, map[name]).default!! as Command
-        result.push([prefix, name, command.items[name]!!])
+        const meta = metas[name]
+        const loaded = findCommandFile(this.commandCaches, { prefix: meta.prefix, jsName: meta.jsName, mainName: meta.aliasTo ?? meta.name })
+        result.push({ meta, loaded })
       }
-
     }
 
     return result
   }
 
 
+  public userInputs: Message[] = []
+
+
   async handleMessage(message: Message): Promise<boolean> {
+    const result = await this.handleMessageInternal(message)
+    if(result) this.userInputs.push(message)
+    return result
+  }
+
+  private async handleMessageInternal(message: Message): Promise<boolean> {
     try {
 
       if(message.author.bot) {
         if(config().noRecurse && message.author == message.client.user) {
-          // no-op
-        } else {
           return false
+          // no-op
         }
       }
 
@@ -307,7 +371,7 @@ export class CommandHandler {
     return null
   }
 
-  async commandSpecForPrefix(allContent: string, prefix: string, commands: Record<string, string>): Promise<CommandSpec | null> {
+  async commandSpecForPrefix(allContent: string, prefix: string, commands: Record<string, CommandMetadata>): Promise<CommandSpec | null> {
     // commands: name -> js name
     const content = allContent.slice(prefix.length).trim()
     const spaceIndex = content.indexOf(' ')
@@ -316,19 +380,19 @@ export class CommandHandler {
     if(spaceIndex == -1) {
       const command = commands[content]
       if(command !== undefined)
-        return await newCommandSpec(this.commandCaches, prefix, content, command, '', allContent)
+        return await newCommandSpec(this.commandCaches, command, '', allContent)
     }
 
     // 2. fast path 2
     const oneWordName = content.slice(0, spaceIndex)
     const oneWordCommand = commands[oneWordName]
     if(oneWordCommand !== undefined)
-      return await newCommandSpec(this.commandCaches, prefix, oneWordName, oneWordCommand, content.slice(spaceIndex + 1).trim(), allContent)
+      return await newCommandSpec(this.commandCaches, oneWordCommand, content.slice(spaceIndex + 1).trim(), allContent)
 
     // 3. slow path
     for(const name of Object.keys(commands)) {
       if(content.startsWith(name + ' '))
-        return await newCommandSpec(this.commandCaches, prefix, name, commands[name], content.slice(name.length).trim(), allContent)
+        return await newCommandSpec(this.commandCaches, commands[name], content.slice(name.length).trim(), allContent)
     }
 
     return null
