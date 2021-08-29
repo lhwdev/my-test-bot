@@ -9,6 +9,12 @@
   "eslint.workingDirectories": ["./"],
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  },
   // "javascript.suggestionActions.enabled": false,
   // "typescript.suggestionActions.enabled": false
 }

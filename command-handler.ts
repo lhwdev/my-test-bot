@@ -9,6 +9,7 @@ import { inspect } from 'util'
 import CommandParameter, { BotCommandError } from './command-parameter'
 import { Command, CommandItem } from './command'
 import Fuse from 'fuse.js'
+import Hangul from 'hangul-js'
 
 
 const sCommandsPath = './commands'
@@ -112,7 +113,7 @@ function createCommandMapCache() {
     commandInversedCache = cacheInversed
     allCommands = all
     allCommandInfos = allInfos
-    commandSearchFuse.setCollection(allCommands)
+    commandSearchFuse.setCollection(allCommands.map(command => Hangul.disassemble(command).join('')))
 
   } catch(e) {
     logError(e, 'createCommandMapCache')
@@ -170,7 +171,7 @@ function wrongCommand(name: string) {
   content += `명령어 \`${name}\`를 찾을 수 없습니다. \`!help -l\`을 입력해 가능한 명령어를 확인하세요.`
 
   // operate fuzzy search on commands
-  const searched = commandSearchFuse.search(name)
+  const searched = commandSearchFuse.search(Hangul.disassemble(name).join(''))
   if(searched.length > 0) {
     content += ' (비슷한 명령어: '
     for(const s of searched) {

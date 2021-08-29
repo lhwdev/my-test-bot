@@ -6,7 +6,8 @@
   "noRecurse": false,
   "maxLimit": 1990,
   "botAdminUsers": [
-    "551597391741059083"
+    "551597391741059083",
+    "870967535984582676"
   ],
   "commands.cleanup-mine": {
     "cleanCommand": true
