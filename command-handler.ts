@@ -49,6 +49,8 @@ let allCommandInfos: CommandMetadata[]
 
 const commandSearchFuse: Fuse<string> = new Fuse([])
 
+export const interceptors: Record<string, (message: Message) => boolean> = {}
+
 
 function createCommandMapCache() {
   function putArray<K extends string | number | symbol, V>(to: Record<K, V[]>, key: K, value: V) {
@@ -278,6 +280,7 @@ export class CommandHandler {
     if(path === undefined) return
 
     if(path.endsWith('.js') || path.endsWith('.ts')) try {
+      console.log(`detected modification for ${path}`)
       const realPath = require.resolve('./' + path)
       delete this.commandCaches[realPath]
       delete require.cache[realPath]
@@ -316,6 +319,9 @@ export class CommandHandler {
 
 
   async handleMessage(message: Message): Promise<boolean> {
+    for(const interceptor of Object.values(interceptors)) {
+      if(interceptor(message)) return true
+    }
     const result = await this.handleMessageInternal(message)
     if(result) this.userInputs.push(message)
     return result
@@ -350,7 +356,7 @@ export class CommandHandler {
       }
 
       return false
-    } catch(e) {
+    } catch(e: any) {
       console.log(chalk`{red handleMessage: error: ${e} ${inspect(e)}}`)
       if(e?.stack) console.log(chalk`{red ${e.stack}}`)
       return true

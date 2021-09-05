@@ -1,9 +1,10 @@
-const chalk = require('chalk')
-const { Message, MessageEmbed, VoiceConnection } = require('discord.js')
-const ytdl = require('ytdl-core-discord')
-const GuildData = require('./guild-data')
-const log = require('./log')
-const { getVideoInfo, linkFor } = require('./youtube')
+import chalk from 'chalk'
+import { Message, MessageEmbed } from 'discord.js'
+import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior, StreamType, VoiceConnection } from '@discordjs/voice'
+import ytdl from 'ytdl-core-discord'
+import GuildData from './guild-data'
+import log from './log'
+import { getVideoInfo, linkFor } from './youtube'
 
 
 let idNumCache = 0
@@ -22,33 +23,50 @@ export async function discordPlayYoutube(data: GuildData, message: Message, id: 
   const audio = ytdl(link, { filter: 'audioonly', highWaterMark: 1 << 4 }) // promise
 
   if (data.playing) {
-    data.playing.stream.destroy()
+    data.playing.player.stop()
   }
 
   let connection: VoiceConnection
-  if (data.playing && data.playing.connection.channel.id == voiceChannel.id) {
+  if (data.playing && data.playing.channel.id == voiceChannel.id) {
     connection = data.playing.connection
   } else {
     if (data.playing) data.playing.connection.disconnect()
-    connection = await voiceChannel.join()
+    
+    connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: voiceChannel.guild.id,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator
+    })
     connection.on('error', e => log(e))
   }
 
   data.playing = undefined
-  const stream = connection.play(await audio, { type: 'opus', volume: data.volume, highWaterMark: 1 })
-  stream.once('finish', () => { if(data.playing && data.playing.id != idNum) stopPlaying(data) })
-  stream.on('error', e => log(e))
+  const player = createAudioPlayer({
+    behaviors: {
+      noSubscriber: NoSubscriberBehavior.Pause
+    },
+  })
+  const audioResource = createAudioResource(await audio, { inlineVolume: true, inputType: StreamType.Opus })
+  player.play(audioResource)
+  const subscription = connection.subscribe(player)
+
+  player.once(AudioPlayerStatus.Paused, () => {
+    if(data.playing && data.playing.id != idNum) stopPlaying(data)
+  })
+  player.on('error', e => log(e))
 
   // show info
   const info = await getVideoInfo(id)
   const title = info.title
   const thumbnailUrl = info.thumbnails.default.url
 
-  stream.on('debug', text => log(chalk.grey(`from ${title}: ${text}`)))
+  player.on('debug', text => log(chalk.grey(`from ${title}: ${text}`)))
 
   data.playing = {
-    stream,
+    player,
+    audioResource,
     connection,
+    channel: voiceChannel,
     songName: title,
     songThumbnailUrl: thumbnailUrl,
     id: idNum
@@ -61,7 +79,7 @@ export async function discordPlayYoutube(data: GuildData, message: Message, id: 
     .setURL(link)
     .setDescription('🎵 재생중')
 
-  reply(embed)
+  reply({ embeds: [embed] })
 }
 
 
@@ -69,7 +87,7 @@ export function stopPlaying(data: GuildData) {
   const playing = data.playing
   data.playing = undefined
   if(playing) {
-      playing.stream.destroy()
+      playing.player.stop()
       playing.connection.disconnect()
   }
   return !!playing

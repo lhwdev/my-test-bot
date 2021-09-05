@@ -1,12 +1,12 @@
 import chalk from "chalk"
-import { Channel, DMChannel, NewsChannel, TextChannel } from "discord.js"
+import { TextBasedChannels } from "discord.js"
 import config from "./config"
 
 export default function log(...content: any[]) {
   console.log(...content)
 }
 
-export function logError(e: any, name: string, channel?: TextChannel | DMChannel | NewsChannel) {
+export function logError(e: any, name: string, channel?: TextBasedChannels) {
   channel?.send(`⚠ 명령어 처리 중 오류가 발생했어요. (${e})`)
   log(chalk`{red ERROR ${name}: ${e}}`)
   if(e && e.stack) {

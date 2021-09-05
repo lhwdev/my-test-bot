@@ -1,9 +1,12 @@
-import { Guild, StreamDispatcher, VoiceConnection } from 'discord.js'
+import { Channel, Guild } from 'discord.js'
+import { AudioPlayer, AudioResource, VoiceConnection } from '@discordjs/voice'
 
 
 type Playing = {
-  stream: StreamDispatcher,
+  player: AudioPlayer,
+  audioResource: AudioResource,
   connection: VoiceConnection,
+  channel: Channel,
   songName: string,
   songThumbnailUrl: string,
   id: number
@@ -17,7 +20,7 @@ export default class GuildData {
   }
   set volume(newVolume: number) {
     this._volume = newVolume
-    if(this.playing) this.playing.stream.setVolume(newVolume)
+    if(this.playing) this.playing.audioResource.volume!!.setVolume(newVolume)
   }
 
   playing?: Playing

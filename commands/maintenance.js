@@ -3,9 +3,9 @@ import { command } from '../command'
 
 export default command({
   items: {
-    stop: {
+    terminate: {
       name: '봇 정지',
-      description: '봇을 정지합니다.'
+      description: '_장비를 정지합니다._'
     },
     restart: {
       name: '봇 재시작',
@@ -18,12 +18,31 @@ export default command({
     }
   },
   async handle(p) {
-    p.ensureAdmin()
     switch(p.name) {
-      case 'stop': {
-        process.exit()
+      case 'terminate': {
+        if(p.isAdmin) {
+          process.exit()
+        } else {
+          await p.reply('안돼! 장비를 정지할 수 없어!\nhttps://han.gl/ajAmO')
+        }
+        break
       }
 
+      case 'restart': {
+        p.ensureAdmin()
+        // 흠....
+        break
+      }
+
+      case 'reload': {
+        p.ensureAdmin()
+        for(const key of Object.keys(require.cache)) {
+          if(key.startsWith(process.cwd)) {
+            delete require.cache[key] // 이게 맞나...
+          }
+        }
+        break
+      }
     }
   }
 })

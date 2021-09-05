@@ -1,4 +1,4 @@
-import { Message, User, TextChannel, DMChannel, NewsChannel, Guild, Client, GuildMember } from 'discord.js'
+import { Message, User, Guild, Client, GuildMember, TextBasedChannels, MessagePayload, MessageOptions } from 'discord.js'
 import { Command, CommandItem, DirectCommandItem } from './command'
 import { CommandHandler, CommandSpec } from './command-handler'
 import { showHelpForItem } from './command-utils'
@@ -62,10 +62,10 @@ export default class CommandParameter {
   }
 
   get member(): GuildMember | null {
-    return this.guild?.member(this.author) ?? null
+    return this.guild?.members.resolve(this.author) ?? null
   }
 
-  get channel(): TextChannel | DMChannel | NewsChannel {
+  get channel(): TextBasedChannels {
     return this.message.channel
   }
 
@@ -89,7 +89,7 @@ export default class CommandParameter {
     throw new BotCommandError('exec', '🚧 아직 완성되지 않은 명령어입니다.', { noHead: true })
   }
 
-  async reply(content: any): Promise<Message> {
+  async reply(content: string | MessagePayload | MessageOptions): Promise<Message> {
     return await this.channel.send(content)
   }
 
@@ -110,7 +110,7 @@ export default class CommandParameter {
     }
   }
 
-  async replyToThis(content: any): Promise<Message> {
+  async replyToThis(content: string | MessagePayload | MessageOptions): Promise<Message> {
     return await this.message.reply(content)
   }
 
@@ -127,9 +127,10 @@ export default class CommandParameter {
     this.deletedOriginal = true
   }
 
-  async replace(content: any) {
-    await this.delete()
-    await this.reply(content)
+  async replace(content: string | MessagePayload | MessageOptions) {
+    // await this.delete()
+    // await this.reply(content)
+    this.message.edit(content)
   }
 
   error(type: BotCommandErrorType, message: string) {

@@ -27,9 +27,12 @@ export default command({
       const commands = await p.handler.listAllCommands()
       let result = ''
 
-      for (const info of commands) {
+      for(const info of commands) {
         const item = info.loaded.command.items[info.meta.name]
-        if('aliasTo' in info.meta) continue
+        if(!item) {
+          // just alias
+          continue
+        }
         if(item.indexed === false) continue
         const aliases = commands.filter(c => c.meta.aliasTo === info.meta.name).map(c => c.meta.name).join(', ')
         result += `> **${info.meta.prefix}${info.meta.name}**${aliases == ''? '' : ' (' + aliases + ')'}: ${item ? item.description : '(도움말 없음)'}\n`
@@ -40,11 +43,11 @@ export default command({
     }
 
     const spec = await p.handler.commandSpec(p.content)
-    if (spec == null) throw new BotCommandError(
+    if(spec == null) throw new BotCommandError(
       'exec',
       dedent`
         알 수 없는 명령어입니다. \`!help -l\`을 입력해서 확인해보세요.
-        **참고: \`!help\` 뒤에는 ! 같은 접두사가 붙은 명령어를 써야 합니다.**
+        **참고: \`!help\` 뒤에는 ! 같은 접두사가 붙은 명령어를 써야 합니다.** (예시: \`!help !help\`)
       `
     )
     if(!spec) {

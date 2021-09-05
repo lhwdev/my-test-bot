@@ -5,7 +5,8 @@ commands:
     # - command name: [alias1, alias2, alias3, ...]
     help:
       - help
-    # youtube: [play, stop, skip, volume]
+    youtube:
+      - play
     hi:
       - hi
     cleanup-mine:
@@ -28,3 +29,9 @@ commands:
       - remote
     perm-gatcha:
       - 권한가챠
+    maintenance:
+      - terminate
+      - restart
+      - reload
+    ban:
+      - ban

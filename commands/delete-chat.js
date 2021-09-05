@@ -1,4 +1,5 @@
 import { command } from '../command'
+import { BotCommandError } from '../command-parameter'
 import { delay } from '../utils'
 
 
@@ -10,20 +11,21 @@ export default command({
     }
   },
   async handle(p) {
-    let count = parseInt(p.content)
-    if(isNaN(count)) count = 5
+    let count = p.content ? parseInt(p.content) : 5
+    if(isNaN(count)) throw new BotCommandError('exec', '잘못된 개수입니다.')
     
     const loops = Math.floor(count / 100)
     const extra = count % 100
     
+    await delay(500)
 
     for(let i = 0; i < loops; i++) {
       await p.channel.bulkDelete(100)
     }
-    await p.channel.bulkDelete(extra)
+    if(extra > 0) await p.channel.bulkDelete(extra)
 
-    const message = await p.reply('✅ 뭉탱이로 삭제 완료')
-    await delay(1000)
-    message.delete()
+    const message = await p.reply(`✅ 메시지 ${count}개를 뭉탱이로 삭제 완료`)
+    // await delay(3000)
+    // await message.delete()
   }
 })

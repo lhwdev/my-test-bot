@@ -33,8 +33,8 @@ export default command({
     await p.channel.bulkDelete(messages)
     await p.delete()
 
-    if (config()['commands.cleanup-mine'].cleanCommand) {
-      const target = p.handler.userInputs.slice(0, Math.min(p.handler.userInputs.length, 100))
+    if(config()['commands.cleanup-mine'].cleanCommand) {
+      const target = p.handler.userInputs.slice(-Math.min(p.handler.userInputs.length, 100))
       await progress.edit('🔨 명령어 입력을 삭제합니다.')
       await p.channel.bulkDelete(target)
       p.handler.userInputs = []
