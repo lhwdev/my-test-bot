@@ -276,7 +276,7 @@ export class CommandSpec {
 
 export class CommandHandler {
   private commandCaches: Record<string, any> = {}
-  private watcher = watch(sCommandsPath, { recursive: true }, (_type, path) => {
+  private watcher = watch('./', { recursive: true }, (_type, path) => {
     if(path === undefined) return
 
     if(path.endsWith('.js') || path.endsWith('.ts')) try {

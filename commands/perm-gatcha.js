@@ -1,12 +1,11 @@
 import dedent from 'dedent'
-import { readFile } from 'fs/promises'
 import { command } from '../command'
 import { BotCommandError } from '../command-parameter'
 
 
-const probability = 0.05
+const probability = 0.01
 const roleId = '881167312919592960'
-const cooltime = 5000
+const cooltime = 10000
 
 const cooltimes = new Set()
 let cooltimesMap = {}
@@ -38,7 +37,7 @@ export default command({
       return 
     }
 
-    p.wip()
+    // p.wip()
     const authorId = p.author.id
     if(cooltimes.has(p.author.id)) {
       const ticks = Date.now() - cooltimesMap[p.author.id]

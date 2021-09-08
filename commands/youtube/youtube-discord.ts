@@ -3,22 +3,20 @@ import { Message, MessageEmbed } from 'discord.js'
 import { AudioPlayerStatus, createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior, StreamType, VoiceConnection } from '@discordjs/voice'
 import ytdl from 'ytdl-core-discord'
 import GuildData from './guild-data'
-import log from './log'
+import log from '../../log'
 import { getVideoInfo, linkFor } from './youtube'
+import CommandParameter, { BotCommandError } from '../../command-parameter'
 
 
 let idNumCache = 0
 
 
-export async function discordPlayYoutube(data: GuildData, message: Message, id: string) {
-  const reply = message.channel.send.bind(message.channel)
-
+export async function discordPlayYoutube(data: GuildData, p: CommandParameter, id: string) {
   const idNum = idNumCache++
-  const voiceChannel = message.member?.voice?.channel
-  if (!voiceChannel) {
-    reply('⚠ 명령어 작성자가 음성채널에 속해있지 않아서 음악을 재생할 수 없습니다.')
-    return
-  }
+  const voiceChannel = p.member?.voice?.channel
+  if (!voiceChannel)
+    throw new BotCommandError('exec', '명령어 작성자가 음성 채널에 속해있지 않아서 음악을 재생할 수 없어요.')
+
   const link = linkFor(id)
   const audio = ytdl(link, { filter: 'audioonly', highWaterMark: 1 << 4 }) // promise
 
@@ -48,7 +46,7 @@ export async function discordPlayYoutube(data: GuildData, message: Message, id: 
   })
   const audioResource = createAudioResource(await audio, { inlineVolume: true, inputType: StreamType.Opus })
   player.play(audioResource)
-  const subscription = connection.subscribe(player)
+  const subscription = connection.subscribe(player)!
 
   player.once(AudioPlayerStatus.Paused, () => {
     if(data.playing && data.playing.id != idNum) stopPlaying(data)
@@ -66,10 +64,16 @@ export async function discordPlayYoutube(data: GuildData, message: Message, id: 
     player,
     audioResource,
     connection,
+    subscription,
     channel: voiceChannel,
     songName: title,
     songThumbnailUrl: thumbnailUrl,
-    id: idNum
+    id: idNum,
+    stop() {
+      this.player.stop()
+      this.subscription.unsubscribe()
+      this.connection.disconnect()
+    }
   }
 
   const embed = new MessageEmbed()
@@ -79,16 +83,13 @@ export async function discordPlayYoutube(data: GuildData, message: Message, id: 
     .setURL(link)
     .setDescription('🎵 재생중')
 
-  reply({ embeds: [embed] })
+  p.reply({ embeds: [embed] })
 }
 
 
 export function stopPlaying(data: GuildData) {
   const playing = data.playing
   data.playing = undefined
-  if(playing) {
-      playing.player.stop()
-      playing.connection.disconnect()
-  }
+  if(playing) playing.stop()
   return !!playing
 }

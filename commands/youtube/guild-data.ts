@@ -1,15 +1,17 @@
 import { Channel, Guild } from 'discord.js'
-import { AudioPlayer, AudioResource, VoiceConnection } from '@discordjs/voice'
+import { AudioPlayer, AudioResource, PlayerSubscription, VoiceConnection } from '@discordjs/voice'
 
 
 type Playing = {
   player: AudioPlayer,
   audioResource: AudioResource,
   connection: VoiceConnection,
+  subscription: PlayerSubscription,
   channel: Channel,
   songName: string,
   songThumbnailUrl: string,
-  id: number
+  id: number,
+  stop: () => void
 }
 
 

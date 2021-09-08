@@ -7,9 +7,10 @@ import { delay } from '../utils'
 import config from '../config'
 import { inspect } from 'util'
 import { interceptors } from '../command-handler'
+import log from '../log'
 
 
-const terminalEmoji = '<:terminal:880832626670325823>'
+const terminalEmoji = '<:terminal:880833718737055864>'
 const timeout = 500
 
 
@@ -61,6 +62,7 @@ export default command({
     }
 
     c.stdout.on('data', chunk => {
+      log(String(chunk))
       const list = String(chunk).split(/\n|\r|\r\n/g)
       content = [...content, ...list]
       if(task == null) task = (async () => {
@@ -68,13 +70,17 @@ export default command({
         await flush()
       })()
     })
+    c.stdout.on('error', err => {
+      p.replySafe(inspect(err))
+    })
   
     c.on('error', (err) => {
       p.replySafe(inspect(err))
     })
 
     c.on('close', (code) => {
-      p.reply(`${code} 코드로 프로세스가 끝났습니다.`)
+      const okay = code === null || code === 0
+      p.reply(`${okay ? '✅' : '❌'} \`${code}\` 코드로 프로세스가 끝났습니다.`)
       delete interceptors['remote-command']
     })
 
@@ -90,6 +96,31 @@ export default command({
     interceptors['remote-command'] = message => {
       if(message.content.startsWith('$')) {
         const input = message.content.slice(1).trim()
+        if(input[0] === '.') {
+          // dot command
+          const raw = input.slice(1)
+          const spaceAt = raw.indexOf(' ')
+          const command = spaceAt == -1 ? raw : raw.slice(0, spaceAt)
+          const content = spaceAt == -1 ? null : raw.slice(spaceAt + 1)
+          switch(command) {
+            case 'kill': {
+              const result = c.kill()
+              if(!result) p.reply('❌ 프로세스를 정지하지 못했습니다.')
+              break
+            }
+            // case 'raw': {
+
+            // }
+            case 'ctrlc': {
+              c.stdin.write('\u0043')
+              break
+            }
+            case 'sudo': {
+              c.stdin.write(`echo 12345678 | sudo -S ${content}`)
+            }
+          }
+          return
+        }
         c.stdin.write(input + '\n', error => {
           if(error) p.replySafe(`not sent: ${inspect(error)}`)
         })

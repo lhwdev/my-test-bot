@@ -1,11 +1,12 @@
 import dedent from 'dedent'
 import { command } from '../command'
-import GuildData from '../guild-data'
-import { searchVideo } from '../youtube'
-import { discordPlayYoutube } from '../youtube-discord'
+import { BotCommandError } from '../command-parameter'
+import GuildData from './youtube/guild-data'
+import { searchVideo } from './youtube/youtube'
+import { discordPlayYoutube } from './youtube/youtube-discord'
 
 
-const datas = []
+const datas = {}
 
 
 export default command({
@@ -15,12 +16,16 @@ export default command({
       name: '유튜브 재생',
       description: '유튜브에서 곡을 검색해서 재생합니다.',
       help: dedent`
-        
+        유튜브에서 곡을 검색해서 재생합니다.
+        명령어:
+        - \`!play [곡 이름]\`
+        - ~~\`!play [유튜브 주소]\`~~: 아직 지원 안됨
       `
     }
   }, // TODO
 
   async handle(p) {
+    const data = datas[p.guild.id]
     switch(p.name) {
       case 'play': {
         if(!(p.guild.id in datas)) {
@@ -28,13 +33,17 @@ export default command({
         }
         const data = datas[p.guild.id]
         const play = await searchVideo(p.content)
-        await discordPlayYoutube(data, p.message, play)
+        if(!play) throw new BotCommandError('exec', '노래를 찾을 수 없어요.')
+        await discordPlayYoutube(data, p, play)
         break
       }
 
       case 'stop': {
-        datas[p.guild.id]
+        data.playing.stop()
+        break
       }
+
+      
     }
   }
 
