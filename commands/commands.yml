@@ -28,6 +28,8 @@ commands:
       - delete: [뭉탱이삭제]
     remote:
       - remote
+    remote.old:
+      - remote-old
     perm-gatcha:
       - 권한가챠
     maintenance:

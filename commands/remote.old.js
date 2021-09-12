@@ -1,13 +1,18 @@
 import { command } from '../command'
 import dedent from 'dedent'
 import { spawn } from 'child_process'
+import pty from 'node-pty'
 import { BotCommandError } from '../command-parameter'
+import { StringDecoder } from 'string_decoder'
 import stringArgv from 'string-argv'
 import { delay } from '../utils'
 import config from '../config'
 import { inspect } from 'util'
 import { interceptors } from '../command-handler'
 import log from '../log'
+
+
+const decoder = new StringDecoder('utf-8')
 
 
 const terminalEmoji = '<:terminal:880833718737055864>'
@@ -41,13 +46,14 @@ export default command({
     const c = spawn(command, args, { windowsHide: true })
     let content = []
     let task = null
+    let silent = false
 
     const flush = async () => {
       let buffer = ''
       const limit = config().maxLimit
       for(const item of content) {
         if(buffer.length + item.length + 1 - 8 > limit) {
-          await p.reply('```\n' + buffer.slice(0, -1) + '\n```')
+          await p.replySafe('```\n' + buffer.slice(0, -1) + '\n```')
           buffer = ''
           content = []
         }
@@ -62,8 +68,10 @@ export default command({
     }
 
     c.stdout.on('data', chunk => {
-      log(String(chunk))
-      const list = String(chunk).split(/\n|\r|\r\n/g)
+      const text = decoder.write(chunk)
+      log(text)
+      if(silent) return
+      const list = text.split(/\n|\r|\r\n/g)
       content = [...content, ...list]
       if(task == null) task = (async () => {
         await delay(timeout)
@@ -108,8 +116,13 @@ export default command({
               if(!result) p.reply('❌ 프로세스를 정지하지 못했습니다.')
               break
             }
+            case 'silent': {
+              silent = !silent
+              break
+            }
             // case 'raw': {
 
+            // https://github.com/microsoft/node-pty
             // }
             case 'ctrlc': {
               c.stdin.write('\u0043')
