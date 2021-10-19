@@ -132,6 +132,10 @@ export default command({
             process.write(body!)
             break
           }
+          case 'kill': {
+            process.kill()
+            break
+          }
         }
         return true
       }

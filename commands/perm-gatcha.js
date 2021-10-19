@@ -5,7 +5,7 @@ import { BotCommandError } from '../command-parameter'
 
 const probability = 0.01
 const roleId = '881167312919592960'
-const cooltime = 10000
+const cooltime = 20000
 
 const cooltimes = new Set()
 let cooltimesMap = {}

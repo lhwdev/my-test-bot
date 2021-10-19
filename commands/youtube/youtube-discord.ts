@@ -18,7 +18,7 @@ export async function discordPlayYoutube(data: GuildData, p: CommandParameter, i
     throw new BotCommandError('exec', '명령어 작성자가 음성 채널에 속해있지 않아서 음악을 재생할 수 없어요.')
 
   const link = linkFor(id)
-  const audio = ytdl(link, { filter: 'audioonly', highWaterMark: 1 << 4 }) // promise
+  const audio = ytdl(link, { filter: 'audioonly', highWaterMark: 1 << 12 }) // promise
 
   if (data.playing) {
     data.playing.player.stop()
@@ -73,6 +73,7 @@ export async function discordPlayYoutube(data: GuildData, p: CommandParameter, i
       this.player.stop()
       this.subscription.unsubscribe()
       this.connection.disconnect()
+      data.playing = undefined
     }
   }
 

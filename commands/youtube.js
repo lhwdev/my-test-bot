@@ -19,7 +19,7 @@ export default command({
         유튜브에서 곡을 검색해서 재생합니다.
         명령어:
         - \`!play [곡 이름]\`
-        - ~~\`!play [유튜브 주소]\`~~: 아직 지원 안됨
+        - \`!play [유튜브 주소]\`
       `
     }
   }, // TODO
@@ -32,6 +32,7 @@ export default command({
           datas[p.guild.id] = new GuildData(p.guild)
         }
         const data = datas[p.guild.id]
+        
         const play = await searchVideo(p.content)
         if(!play) throw new BotCommandError('exec', '노래를 찾을 수 없어요.')
         await discordPlayYoutube(data, p, play)

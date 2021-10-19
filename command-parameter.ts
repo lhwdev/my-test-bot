@@ -85,6 +85,10 @@ export default class CommandParameter {
     if(!this.isAdmin) throw new BotCommandError('exec', '봇 관리자 권한이 없습니다.')
   }
 
+  // ensurePermission() {
+  //   this.author.
+  // }
+
   wip(): void {
     throw new BotCommandError('exec', '🚧 아직 완성되지 않은 명령어입니다.', { noHead: true })
   }

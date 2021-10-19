@@ -21,7 +21,7 @@ function runEval(p, onRun) {
 async function printResult(p, result) {
   let str
   if(result instanceof Promise) str = await result
-  else if(typeof result === 'object') str = inspect(result)
+  if(typeof result === 'object') str = inspect(result)
   else str = String(result)
   const limit = config().maxLimit
   if(str.length > limit) str = str.slice(0, limit - 4) + '\n...'
@@ -57,7 +57,7 @@ export default command({
     switch(p.name) {
       case 'eval': {
         const result = runEval(p, () => vm.run(p.content))
-        await printResult(p, result)
+        await printResult(p, result);
         
         break
       }

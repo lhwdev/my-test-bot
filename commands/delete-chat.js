@@ -11,6 +11,8 @@ export default command({
     }
   },
   async handle(p) {
+    p.ensureAdmin()
+
     let count = p.content ? parseInt(p.content) : 5
     if(isNaN(count)) throw new BotCommandError('exec', '잘못된 개수입니다.')
     

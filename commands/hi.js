@@ -1,3 +1,4 @@
+import { MessageActionRow, MessageButton } from 'discord.js'
 import { command } from '../command'
 
 
@@ -9,6 +10,32 @@ export default command({
     }
   },
   async handle(p) {
-    await p.reply('ㅎㅇㅎㅇ')
+    const row = new MessageActionRow()
+      .addComponents(
+        new MessageButton()
+          .setCustomId('hi')
+          .setLabel('ㅇㅋ')
+          .setStyle('PRIMARY')
+      )
+      .addComponents(
+        new MessageButton()
+          .setCustomId('hi2')
+          .setLabel('?')
+          .setStyle('SECONDARY')
+      )
+      .addComponents(
+        new MessageButton()
+          .setCustomId('hi3')
+          .setLabel('ㄴㄴ')
+          .setStyle('DANGER')
+      )
+      .addComponents(
+        new MessageButton()
+          .setLabel('링크')
+          .setURL('https://github.com/lhwdev/my-test-bot')
+          .setStyle('LINK')
+      )
+    await p.reply({ content: 'ㅎㅇㅎㅇ', components: [row] })
+    
   }
 })

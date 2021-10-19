@@ -40,3 +40,7 @@ commands:
       - ban
     dictionary:
       - meaning
+
+  '%':
+    k2e-conv:
+      - e2k: ['%']

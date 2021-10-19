@@ -13,6 +13,6 @@ export default command({
     }
   },
   async handle(p) {
-    await p.reply('Hello, world!')
+    p.ensurePermission()
   }
 })

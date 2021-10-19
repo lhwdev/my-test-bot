@@ -1,8 +1,8 @@
 {
   "deleteCommand": false,
   "deleteOriginal": true,
-  "detailedLogToDiscord": true,
-  "detailedUserErrorToDiscord": true,
+  "detailedLogToDiscord": false,
+  "detailedUserErrorToDiscord": false,
   "noRecurse": true,
   "maxLimit": 1990,
   "botAdminUsers": [

@@ -70,9 +70,5 @@ client.once('ready', async () => {
 client.on('messageCreate', async message => {
   await handler.handleMessage(message)
 })
-client.on('interactionCreate', async interaction => {
-  if(!interaction.isCommand()) return
-  interaction.reply('와!')
-})
 
 client.login(token)
