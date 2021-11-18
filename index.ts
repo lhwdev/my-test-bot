@@ -1,4 +1,4 @@
-import { Client, Intents } from 'discord.js'
+import { Client, Intents, TextChannel } from 'discord.js'
 import log from './log'
 import { applicationId, clientId, token } from './secrets.json'
 import  chalk from 'chalk'
@@ -28,7 +28,7 @@ function ask() {
 
 const client = new Client({ intents: [
   Intents.FLAGS.GUILDS,
-  // Intents.FLAGS.GUILD_MEMBERS,
+  Intents.FLAGS.GUILD_MEMBERS,
   // Intents.FLAGS.GUILD_BANS,
   // Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
   // Intents.FLAGS.GUILD_INTEGRATIONS,
@@ -68,7 +68,7 @@ client.once('ready', async () => {
 })
 
 client.on('messageCreate', async message => {
-  await handler.handleMessage(message)
+  await handler.handleMessage(message);
 })
 
 client.login(token)

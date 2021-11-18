@@ -13,6 +13,17 @@ export default command({
     }
   },
   async handle(p) {
-    p.ensurePermission()
+    p.ensureAdmin()
+
+    const l = await p.channel.messages.fetch({limit:100, before:'901837228253270026'})
+    const r = l.filter(m => m.author.username.includes('Power386')).map(m => m.author).values()
+    for(const u of r) {
+    try {
+      await p.guild.bans.remove(u)
+    } catch(e) {
+      // no-op
+    }
+    await p.guild.bans.create(u, {days: 7});console.log(u.username + '#' + u.discriminator)}
+    p.reply('Done!')
   }
 })

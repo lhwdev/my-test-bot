@@ -13,15 +13,15 @@ export default command({
     }
   },
   async handle(p) {
-    const prefix = '@' + p.author.username + ': '
+    const prefix = '<@!' + p.author.id + '>: '
     p.deleteOriginal()
     switch(p.name) {
       case 'k2e': {
-        await p.reply(prefix + inko.ko2en(p.content))
+        await p.reply({ content: prefix + inko.ko2en(p.content), allowedMentions: { parse: [] } })
         break
       }
       case 'e2k': {
-        await p.reply(prefix + inko.en2ko(p.content))
+        await p.reply({ content: prefix + inko.en2ko(p.content), allowedMentions: { parse: [] } })
         break
       }
       default: {

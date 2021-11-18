@@ -40,6 +40,10 @@ commands:
       - ban
     dictionary:
       - meaning
+    emoji_larger:
+      - emoji_larger
+    tool:
+      - tool
 
   '%':
     k2e-conv:

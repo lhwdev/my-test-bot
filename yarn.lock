@@ -947,6 +947,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"emoji-essential@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "emoji-essential@npm:1.0.0"
+  checksum: e461f0214e1d9d5bc4db7cb9d17c2472787bb72fcfc20f7407addd39219133e9ce458264b3da0c4c34d7a9c4180a66408ca8d4105257f7df4ca054e62ac5b85c
+  languageName: node
+  linkType: hard
+
 "emoji-regex@npm:^8.0.0":
   version: 8.0.0
   resolution: "emoji-regex@npm:8.0.0"
@@ -1256,6 +1263,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fs-extra@npm:^8.0.1":
+  version: 8.1.0
+  resolution: "fs-extra@npm:8.1.0"
+  dependencies:
+    graceful-fs: ^4.2.0
+    jsonfile: ^4.0.0
+    universalify: ^0.1.0
+  checksum: bf44f0e6cea59d5ce071bba4c43ca76d216f89e402dc6285c128abc0902e9b8525135aa808adad72c9d5d218e9f4bcc63962815529ff2f684ad532172a284880
+  languageName: node
+  linkType: hard
+
 "fs-minipass@npm:^2.0.0":
   version: 2.1.0
   resolution: "fs-minipass@npm:2.1.0"
@@ -1380,6 +1398,13 @@ __metadata:
   dependencies:
     type-fest: ^0.20.2
   checksum: 64e45d96d634d2b047385eb5925de3abb5964cf4f3564eba493694f5ab1a8818b333f89d34b0f71f9b1d87391e6e25c5ca1a87094dd80a657d1d99b9321e1f4e
+  languageName: node
+  linkType: hard
+
+"graceful-fs@npm:^4.1.6, graceful-fs@npm:^4.2.0":
+  version: 4.2.8
+  resolution: "graceful-fs@npm:4.2.8"
+  checksum: 5d224c8969ad0581d551dfabdb06882706b31af2561bd5e2034b4097e67cc27d05232849b8643866585fd0a41c7af152950f8776f4dd5579e9853733f31461c6
   languageName: node
   linkType: hard
 
@@ -1725,6 +1750,31 @@ __metadata:
   version: 5.0.1
   resolution: "json-stringify-safe@npm:5.0.1"
   checksum: 48ec0adad5280b8a96bb93f4563aa1667fd7a36334f79149abd42446d0989f2ddc58274b479f4819f1f00617957e6344c886c55d05a4e15ebb4ab931e4a6a8ee
+  languageName: node
+  linkType: hard
+
+"jsonfile@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "jsonfile@npm:4.0.0"
+  dependencies:
+    graceful-fs: ^4.1.6
+  dependenciesMeta:
+    graceful-fs:
+      optional: true
+  checksum: 6447d6224f0d31623eef9b51185af03ac328a7553efcee30fa423d98a9e276ca08db87d71e17f2310b0263fd3ffa6c2a90a6308367f661dc21580f9469897c9e
+  languageName: node
+  linkType: hard
+
+"jsonfile@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "jsonfile@npm:5.0.0"
+  dependencies:
+    graceful-fs: ^4.1.6
+    universalify: ^0.1.2
+  dependenciesMeta:
+    graceful-fs:
+      optional: true
+  checksum: e0ecff572dba34153a66e3a3bc5c6cb01a2c1d2cf4a2c19b6728dcfcab39d94be9cca4a0fc86a17ff2c815f2aeb43768ac75545780dbea4009433fdc32aa14d1
   languageName: node
   linkType: hard
 
@@ -2791,6 +2841,7 @@ __metadata:
     dedent: ^0.7.0
     discord-api-types: ^0.22.0
     discord.js: ^13.1.0
+    emoji-essential: ^1.0.0
     eslint: ^7.32.0
     fuse.js: ^6.4.6
     hangul-js: ^0.2.6
@@ -2805,6 +2856,7 @@ __metadata:
     request: ^2.88.2
     string-argv: ^0.3.1
     ts-node: ^10.2.1
+    twemoji: ^13.1.0
     typescript: ^4.4.2
     vm2: ^3.9.3
     yaml: ^1.10.2
@@ -2903,6 +2955,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"twemoji-parser@npm:13.1.0":
+  version: 13.1.0
+  resolution: "twemoji-parser@npm:13.1.0"
+  checksum: 8046ce003c03dd92d68c2648cfbfa39c659fca4f05c10da8d14957985dc3c0c680f3ecf2de8245dc1ddffedc5b2a675f2032053e1e77cc7474301a88fe192ad3
+  languageName: node
+  linkType: hard
+
+"twemoji@npm:^13.1.0":
+  version: 13.1.0
+  resolution: "twemoji@npm:13.1.0"
+  dependencies:
+    fs-extra: ^8.0.1
+    jsonfile: ^5.0.0
+    twemoji-parser: 13.1.0
+    universalify: ^0.1.2
+  checksum: 9938fb6973b760a676052d11a5318b381bf6533d8195d578664d537082a61298e0b21f315b9e2938ec6a64f8be70a8d460cf85924393a8a6ba1a2fab2158a3ef
+  languageName: node
+  linkType: hard
+
 "type-check@npm:^0.4.0, type-check@npm:~0.4.0":
   version: 0.4.0
   resolution: "type-check@npm:0.4.0"
@@ -2961,6 +3032,13 @@ typescript@^4.4.2:
   dependencies:
     imurmurhash: ^0.1.4
   checksum: 5b6876a645da08d505dedb970d1571f6cebdf87044cb6b740c8dbb24f0d6e1dc8bdbf46825fd09f994d7cf50760e6f6e063cfa197d51c5902c00a861702eb75a
+  languageName: node
+  linkType: hard
+
+"universalify@npm:^0.1.0, universalify@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "universalify@npm:0.1.2"
+  checksum: 40cdc60f6e61070fe658ca36016a8f4ec216b29bf04a55dce14e3710cc84c7448538ef4dad3728d0bfe29975ccd7bfb5f414c45e7b78883567fb31b246f02dff
   languageName: node
   linkType: hard
 
