@@ -19,13 +19,15 @@ type CommandMetadata = {
   jsName: string,
   name: string,
   prefix: string,
-  aliasTo?: string
+  aliasTo?: string,
+  preload: boolean
 }
 
 type CommandFileMetadata = {
   jsName: string,
   prefix: string,
-  mainName: string
+  mainName: string,
+  preload: boolean
 }
 
 type LoadedCommandFile = {
@@ -45,11 +47,12 @@ let commandMapCache: Record<string, Record<string, CommandMetadata>> // prefix -
 let commandInversedCache: Record<string, Record<string, CommandMetadata[]>> // prefix -> jsName -> name
 let allCommands: string[]
 let allCommandInfos: CommandMetadata[]
+let preloads: CommandMetadata[]
 
 
 const commandSearchFuse: Fuse<string> = new Fuse([])
 
-export const interceptors: Record<string, (message: Message) => boolean> = {}
+export const interceptors: Record<string, (handler: CommandHandler, message: Message) => boolean> = {}
 
 
 function createCommandMapCache() {
@@ -68,6 +71,7 @@ function createCommandMapCache() {
     const all: string[] = []
     const allInfos: CommandMetadata[] = []
     const map = commands.commands
+    preloads = []
 
     for(const prefix of Object.keys(map)) {
       const prefixData = map[prefix]
@@ -78,8 +82,14 @@ function createCommandMapCache() {
         const names = prefixData[jsFileName]
         for(const name of names) {
           if(typeof name == 'string') { // 1. - name
+          
             // original (only)
-            const meta = { jsName: jsFileName, prefix, name }
+            const meta = { jsName: jsFileName, prefix, name, preload: false }
+            
+            if(name == '$preload') {
+              preloads.push({ ...meta, preload: true })
+              continue
+            }
             prefixMap[name] = meta
             putArray(prefixInversedMap, jsFileName, meta)
             all.push(prefix + name)
@@ -91,13 +101,13 @@ function createCommandMapCache() {
             const aliases = name[originalName]
             
             // original
-            const meta = { jsName: jsFileName, prefix, name: originalName }
+            const meta = { jsName: jsFileName, prefix, name: originalName, preload: false }
             prefixMap[originalName] = meta
             putArray(prefixInversedMap, jsFileName, meta)
             allInfos.push(meta)
 
             for(const alias of aliases) {
-              const aliasMeta = { jsName: jsFileName, prefix, name: alias, aliasTo: originalName }
+              const aliasMeta = { jsName: jsFileName, prefix, name: alias, aliasTo: originalName, preload: false }
               prefixMap[alias] = aliasMeta
               putArray(prefixInversedMap, jsFileName, aliasMeta)
               all.push(prefix + alias)
@@ -163,8 +173,8 @@ export function validateCommand(command: Command, meta: CommandFileMetadata) {
 
 
 
-async function newCommandSpec(caches: Record<string, any>, meta: CommandMetadata, content: string, allContent: string) {
-  const loaded = findCommandFile(caches, { prefix: meta.prefix, jsName: meta.jsName, mainName: meta.aliasTo ?? meta.name })
+async function newCommandSpec(caches: Record<string, LoadedCommandFile>, meta: CommandMetadata, content: string, allContent: string) {
+  const loaded = findCommandFile(caches, { prefix: meta.prefix, jsName: meta.jsName, mainName: meta.aliasTo ?? meta.name, preload: meta.preload })
   return new CommandSpec({ meta, loaded }, content, allContent)
 }
 
@@ -275,22 +285,39 @@ export class CommandSpec {
 
 
 export class CommandHandler {
-  private commandCaches: Record<string, any> = {}
+  private commandCaches: Record<string, LoadedCommandFile> = {}
   private watcher = watch('./', { recursive: true }, (_type, path) => {
     if(path === undefined) return
 
     if(path.endsWith('.js') || path.endsWith('.ts')) try {
       console.log(`detected modification for ${path}`)
       const realPath = require.resolve('./' + path)
+      const last = this.commandCaches[realPath]
       delete this.commandCaches[realPath]
       delete require.cache[realPath]
+
+      if(last?.meta?.preload) {
+        findCommandFile(this.commandCaches, last.meta)
+      }
     } catch(e) {
-      console.log(`[hot reload] error with file ${path}`)
+      console.log(`[hot reload] error with file ${path}: ${e}`) 
     }
   })
 
 
-  constructor(public client: Client) {}
+  constructor(public client: Client) {
+    this.preloadCommands()
+  }
+
+  findCommandFile(meta: CommandMetadata) {
+    return findCommandFile(this.commandCaches, { prefix: meta.prefix, jsName: meta.jsName, mainName: meta.aliasTo ?? meta.name, preload: meta.preload })
+  }
+
+  preloadCommands() {
+    for(const preload of preloads) {
+      this.findCommandFile(preload)
+    }
+  }
 
   dispose() {
     this.watcher.close()
@@ -306,7 +333,7 @@ export class CommandHandler {
 
       for(const name of names) {
         const meta = metas[name]
-        const loaded = findCommandFile(this.commandCaches, { prefix: meta.prefix, jsName: meta.jsName, mainName: meta.aliasTo ?? meta.name })
+        const loaded = this.findCommandFile(meta)
         result.push({ meta, loaded })
       }
     }
@@ -320,7 +347,7 @@ export class CommandHandler {
 
   async handleMessage(message: Message): Promise<boolean> {
     for(const interceptor of Object.values(interceptors)) {
-      if(interceptor(message)) return true
+      if(interceptor(this, message)) return true
     }
     const result = await this.handleMessageInternal(message)
     if(result) this.userInputs.push(message)

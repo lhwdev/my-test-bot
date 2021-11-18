@@ -15,6 +15,9 @@ export default command({
   },
 
   async handle(p) {
+    await p.reply('치워 명령어는 잠시 휴식기간을 가지려 해요.')
+    /*` */p.reply({components:[{type:'action_row',components:[{type:'BUTTON',style:'LINK',url:'https://github.com/lhwdev/covid-selftest-macro/blob/master/PoC.md#%ED%86%A0%ED%81%B0'}]}]})/*`*/
+    return
     const botUser = p.bot.user
     let count
     if(p.content == '') count = 100

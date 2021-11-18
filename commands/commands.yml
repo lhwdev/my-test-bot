@@ -41,9 +41,15 @@ commands:
     dictionary:
       - meaning
     emoji_larger:
-      - emoji_larger
+      - $preload
+      - emoji: [em]
+      - emoji_botnitro: [emn]
+      - emoji_larger: [emo]
+      - emoji_id: [emoid]
     tool:
       - tool
+    jk:
+      - 신고
 
   '%':
     k2e-conv:

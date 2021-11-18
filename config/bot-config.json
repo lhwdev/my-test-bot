@@ -1,6 +1,6 @@
 {
   "deleteCommand": false,
-  "deleteOriginal": true,
+  "deleteOriginal": false,
   "detailedLogToDiscord": false,
   "detailedUserErrorToDiscord": false,
   "noRecurse": true,

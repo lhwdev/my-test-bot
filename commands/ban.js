@@ -14,6 +14,14 @@ export default command({
   },
   async handle(p) {
     p.ensureAdmin()
+    if(p.author.id != '551597391741059083') return
+    
+    // p.reply('아직 안만들었어요..')
+    // return
+
+    const user = p.content.match(/<!?@(\d+)>/)[1]
+    p.guild.bans.create(user, { reason: '죽창' })
+    return
 
     const l = await p.channel.messages.fetch({limit:100, before:'901837228253270026'})
     const r = l.filter(m => m.author.username.includes('Power386')).map(m => m.author).values()

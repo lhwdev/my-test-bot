@@ -118,7 +118,7 @@ export default command({
       delete interceptors['remote-command']
     })
 
-    interceptors['remote-command'] = message => {
+    interceptors['remote-command'] = (_handler, message) => {
       const c = message.content
       if(!c.startsWith('$')) return false
       const content = c.slice(1)

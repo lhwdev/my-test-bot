@@ -2,7 +2,7 @@ import { Client, Intents, TextChannel } from 'discord.js'
 import log from './log'
 import { applicationId, clientId, token } from './secrets.json'
 import  chalk from 'chalk'
-import { CommandHandler, interceptors } from './command-handler'
+import { CommandHandler } from './command-handler'
 import { REST } from '@discordjs/rest'
 
 import readline from 'readline'
