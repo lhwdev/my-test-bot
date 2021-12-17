@@ -6,7 +6,9 @@ commands:
     help:
       - help
     youtube:
+      - now
       - play
+      - next
       - stop
     hi:
       - hi
@@ -38,10 +40,10 @@ commands:
       - reload
     ban:
       - ban
+      - unban
     dictionary:
       - meaning
     emoji_larger:
-      - $preload
       - emoji: [em]
       - emoji_botnitro: [emn]
       - emoji_larger: [emo]
@@ -49,6 +51,7 @@ commands:
     tool:
       - tool
     jk:
+      - $preload
       - 신고
 
   '%':

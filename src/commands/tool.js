@@ -13,9 +13,19 @@ export default command({
     }
   },
   async handle(p) {
-    // p.ensureAdmin()
+    // await p.reply('(지금은 임무를 다한 듯 하다. 아니면 하고 있나?)')
+    p.ensureAdmin()
 
-    await p.reply('(지금은 임무를 다한 듯 하다. 아니면 하고 있나?)')
+    await p.reply('모든 멤버에게 \'사람\' 역할을 부여합니다.')
+
+    const members = await p.guild.members.list({ limit: 1000 })
+    const target = await p.guild.roles.fetch('914166481955221505')
+    for(const member of members.values()) {
+      await member.roles.add(target)
+    }
+
+    await p.reply('✅ 완료했습니다.')
+
     return
     
     const users = await p.guild.members.list({ limit: 1000 })

@@ -1,11 +1,12 @@
 import dedent from 'dedent'
 import { command } from '../command'
 import { BotCommandError } from '../command-parameter'
+import { delay } from '../utils'
 
 
-const probability = 0.01
+const probability = 0.03
 const roleId = '881167312919592960'
-const cooltime = 20000
+const cooltime = 10000
 
 const cooltimes = new Set()
 let cooltimesMap = {}
@@ -29,12 +30,24 @@ export default command({
       await p.reply('https://github.com/lhwdev/my-test-bot/tree/master/commands/perm-gatcha.js 이거 보세요!')
       return
     }
+    if(p.content === '정보') {
+      await p.reply(`현재 확률은 ${probability}입니다. 현재 쿨타임은 ${cooltime}입니다.`)
+      return
+    }
     if(p.content == '-c') {
       p.ensureAdmin()
       cooltimes.clear()
       await p.reply('✅ 쿨타임을 리셋했습니다.')
       cooltimesMap = {}
       return 
+    }
+
+    if(!p.isAdmin && p.channel.id != '881187116661497886') {
+      const m = await p.reply('권한가챠는 <#881187116661497886>에서 쳐주세요!')
+      await delay(4000)
+      await p.message.delete()
+      await m.delete()
+      return
     }
 
     // p.wip()

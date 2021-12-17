@@ -1,12 +1,12 @@
 import dedent from 'dedent'
 import { command } from '../command'
-import { BotCommandError } from '../command-parameter'
+import { persist } from '../command-handler'
 import GuildData from './youtube/guild-data'
-import { searchVideo } from './youtube/youtube'
-import { discordPlayYoutube } from './youtube/youtube-discord'
+import { nowPlaying, playNextQueue, playYoutube, stopPlaying } from './youtube/youtube-discord'
 
 
-const datas = {}
+/** @type {Record<string, GuildData>} */
+const datas = persist('datas', () => ({}))
 
 
 export default command({
@@ -25,22 +25,30 @@ export default command({
   }, // TODO
 
   async handle(p) {
-    const data = datas[p.guild.id]
-    switch(p.name) {
-      case 'play': {
-        if(!(p.guild.id in datas)) {
-          datas[p.guild.id] = new GuildData(p.guild)
-        }
-        const data = datas[p.guild.id]
+    let data = datas[p.guild.id]
+    if(!(p.guild.id in datas)) {
+      data = new GuildData(p.guild)
+      datas[p.guild.id] = data
+    }
         
-        const play = await searchVideo(p.content)
-        if(!play) throw new BotCommandError('exec', '노래를 찾을 수 없어요.')
-        await discordPlayYoutube(data, p, play)
+    switch(p.name) {
+      case 'now': {
+        await nowPlaying(data, p)
+        break
+      }
+
+      case 'play': {
+        await playYoutube(data, p)
+        break
+      }
+
+      case 'next': {
+        await playNextQueue(data, p)
         break
       }
 
       case 'stop': {
-        data.playing.stop()
+        await stopPlaying(data, true)
         break
       }
 

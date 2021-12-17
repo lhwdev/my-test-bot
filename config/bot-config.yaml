@@ -1,0 +1,21 @@
+deleteCommand: false
+deleteOriginal: false
+
+detailedLogToDiscord: false
+detailedUserErrorToDiscord: false
+
+noRecurse: true
+maxLimit: 1990
+
+botAdminUsers: [
+  '551597391741059083',
+  '870967535984582676',
+  '462936250278739998',
+  '466176598651961344',
+  '469135194830536704'
+]
+commands:
+  cleanup-mine:
+    cleanCommand: false
+  
+

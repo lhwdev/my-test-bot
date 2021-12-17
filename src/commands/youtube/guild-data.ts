@@ -1,15 +1,20 @@
-import { Channel, Guild } from 'discord.js'
+import { Channel, Guild, StageChannel, VoiceChannel } from 'discord.js'
 import { AudioPlayer, AudioResource, PlayerSubscription, VoiceConnection } from '@discordjs/voice'
 
 
-type Playing = {
+export type SongInfo = {
+  name: string,
+  thumbnailUrl: string,
+  link: string
+}
+
+export type Playing = {
   player: AudioPlayer,
   audioResource: AudioResource,
   connection: VoiceConnection,
   subscription: PlayerSubscription,
-  channel: Channel,
-  songName: string,
-  songThumbnailUrl: string,
+  channel: VoiceChannel | StageChannel,
+  song: SongInfo,
   id: number,
   stop: () => void
 }
@@ -26,6 +31,8 @@ export default class GuildData {
   }
 
   playing?: Playing
+
+  queue: SongInfo[] = []
 
 
   constructor(public guild: Guild) {}

@@ -57,12 +57,16 @@ export default command({
     switch(p.name) {
       case 'eval': {
         const result = runEval(p, () => vm.run(p.content))
-        await printResult(p, result);
+        await printResult(p, result)
         
         break
       }
       case 'evalp': {
         p.ensureAdmin()
+        // if(p.author.id !== '551597391741059083') {
+        //   p.reply('하지만 주인장이 아니었다')
+        //   return
+        // }
         const result = runEval(p, () => eval(p.content))
         await printResult(p, result)
 

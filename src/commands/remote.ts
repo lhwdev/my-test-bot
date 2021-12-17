@@ -10,6 +10,8 @@ import { inspect } from 'util'
 import { interceptors } from '../command-handler'
 import log from '../log'
 import os from 'os'
+import { open } from 'fs/promises'
+import { resolve } from 'path'
 
 
 const terminalEmoji = '<:terminal:880833718737055864>'
@@ -35,16 +37,22 @@ export default command({
     // p.wip() // TODO: wip
     // throw new BotCommandError('exec', '🚧 수정중이니 좀만 기달')
     if(!p.isAdmin) throw new BotCommandError('exec', '이 명령어를 실행할 권한이 없습니다.\nDocker 컨테이너를 통한 실행은.. 기다려 주세요. ㄱㄷㄱㄷ')
+    
+    if(p.author.id !== '551597391741059083') {
+      p.reply('하지만 주인장이 아니었다')
+      return
+    }
 
     if(!p.content) {
       throw new BotCommandError('exec', '실행할 프로그램 이름을 입력해주세요.')
     }
     const argv = stringArgv(p.content)
     const flags: IPtyForkOptions = {}
+    const file = await open(resolve('./debug.txt'), 'w')
     let fileIndex = 0
 
     let columns = 200
-    let rows = 100
+    let rows = 60
     let scrollLength = 1000
 
     for(const arg in argv) {
@@ -85,6 +93,7 @@ export default command({
       const limit = config().maxLimit
       for(const item of content) {
         if(buffer.length + item.length + 1 - 8 > limit) {
+          await file.write(buffer)
           await p.replySafe('```\n' + buffer.slice(0, -1) + '\n```')
           buffer = ''
           content = []
@@ -113,8 +122,9 @@ export default command({
       parse(str)
     })
 
-    process.onExit(e => {
-      p.replySafe(`${terminalEmoji} 프로세스가 ${e.exitCode}로 끝났습니다.${e.signal !== undefined ? '' : ' ' + e.signal}`)
+    process.onExit(async e => {
+      await p.replySafe(`${terminalEmoji} 프로세스가 ${e.exitCode}로 끝났습니다.${e.signal !== undefined ? '' : ' ' + e.signal}`)
+      await file.close()
       delete interceptors['remote-command']
     })
 

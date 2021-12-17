@@ -6,7 +6,7 @@
   "author": "lhwdev",
   "license": "MIT",
   "scripts": {
-    "main": "ts-node . --allowJs"
+    "main": "ts-node ./src/index.ts --allowJs"
   },
   "dependencies": {
     "@discordjs/builders": "^0.6.0",
@@ -25,6 +25,7 @@
     "fuse.js": "^6.4.6",
     "hangul-js": "^0.2.6",
     "inko": "^1.1.1",
+    "json5": "^2.2.0",
     "lenient-json": "^1.0.1",
     "libsodium-wrappers": "^0.7.9",
     "node-fetch": "^2.6.2",

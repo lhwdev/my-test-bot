@@ -14,6 +14,9 @@ export default command({
     }
   },
   async handle(p) {
+    if(p.content != '') {
+      // const  
+    }
     await p.reply(p.message.author.id)
   }
 })

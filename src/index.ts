@@ -1,6 +1,6 @@
 import { Client, Intents, TextChannel } from 'discord.js'
 import log from './log'
-import { applicationId, clientId, token } from './secrets.json'
+import { applicationId, clientId, token } from '../secrets.json'
 import  chalk from 'chalk'
 import { CommandHandler } from './command-handler'
 import { REST } from '@discordjs/rest'
@@ -16,14 +16,6 @@ const rl = readline.createInterface({
 })
 
 let channel: any = null
-
-function ask() {
-  rl.question('bot> ', (message) => {
-    if(channel == null) return
-    channel.send(message)
-    ask()
-  })
-}
 
 
 const client = new Client({ intents: [
@@ -68,7 +60,9 @@ client.once('ready', async () => {
 })
 
 client.on('messageCreate', async message => {
+  channel = message.channel;
   await handler.handleMessage(message);
 })
 
 client.login(token)
+// ask()

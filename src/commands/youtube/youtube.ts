@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import { youtubeApiKey } from '../../secrets.json'
+import { youtubeApiKey } from '../../../secrets.json'
 
 
 export async function searchVideo(query: string) {

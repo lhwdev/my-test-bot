@@ -15,7 +15,7 @@
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   }
   // "javascript.suggestionActions.enabled": false,
   // "typescript.suggestionActions.enabled": false

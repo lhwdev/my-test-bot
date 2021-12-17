@@ -10,9 +10,10 @@ import CommandParameter, { BotCommandError } from './command-parameter'
 import { Command, CommandItem } from './command'
 import Fuse from 'fuse.js'
 import Hangul from 'hangul-js'
+import { resolve } from 'path'
 
 
-const sCommandsPath = './commands'
+const sCommandsPath = resolve('./src/commands')
 const sCommandsYaml = sCommandsPath + '/commands.yml'
 
 type CommandMetadata = {
@@ -48,6 +49,8 @@ let commandInversedCache: Record<string, Record<string, CommandMetadata[]>> // p
 let allCommands: string[]
 let allCommandInfos: CommandMetadata[]
 let preloads: CommandMetadata[]
+
+let currentContext: CommandFileMetadata | undefined
 
 
 const commandSearchFuse: Fuse<string> = new Fuse([])
@@ -148,7 +151,9 @@ function findCommandFile(caches: Record<string, LoadedCommandFile>, meta: Comman
   const path = require.resolve(sCommandsPath + '/' + meta.jsName)
   let loaded = caches[path]
   if(loaded === undefined) {
+    currentContext = meta
     const js = require(path)
+    currentContext = undefined
     loaded = { meta, exports: js, command: js.default }
     caches[meta.jsName] = loaded
 
@@ -291,12 +296,13 @@ export class CommandHandler {
 
     if(path.endsWith('.js') || path.endsWith('.ts')) try {
       console.log(`detected modification for ${path}`)
-      const realPath = require.resolve('./' + path)
+      const realPath = require.resolve(resolve('./' + path))
       const last = this.commandCaches[realPath]
       delete this.commandCaches[realPath]
       delete require.cache[realPath]
 
       if(last?.meta?.preload) {
+        console.log(`preload command ${path}`)
         findCommandFile(this.commandCaches, last.meta)
       }
     } catch(e) {
@@ -434,4 +440,27 @@ export class CommandHandler {
 }
 
 
+let persistMap: Record<string, Record<string, unknown>> = {}
 
+
+/**
+ * This function can only be called from commands when they are being loaded.
+ * Values stored by this survives hot reload.
+ */
+export function persist<T>(key: string, create: () => T): T {
+  if(!currentContext) throw new Error('persist must be called in a command context')
+  const globalKey = currentContext.jsName
+  let map = persistMap[globalKey]
+  if(!map) {
+    map = {}
+    persistMap[globalKey] = map
+  }
+
+  if(!(key in map)) {
+    const value = create()
+    map[key] = value
+    return value
+  } else {
+    return map[key] as T
+  }
+}
