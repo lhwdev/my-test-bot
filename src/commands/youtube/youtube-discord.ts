@@ -13,6 +13,7 @@ const queueLimit = 3
 
 
 export async function nowPlaying(data: GuildData, p: CommandParameter) {
+  const isAll = p.content == 'all'
   const song = data.playing?.song
 
   const embed = new MessageEmbed()
@@ -26,8 +27,8 @@ export async function nowPlaying(data: GuildData, p: CommandParameter) {
 
   const queue = data.queue
   if(queue.length > 0) {
-    const isSliced = queue.length > queueLimit
-    const q = queue.slice(0, queueLimit)
+    const isSliced = !isAll && queue.length > queueLimit
+    const q = isAll ? queue : queue.slice(0, queueLimit)
 
     for(let i = 0; i < q.length; i++) {
       const item = q[i]

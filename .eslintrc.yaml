@@ -6,8 +6,7 @@ env:
 
 parserOptions:
   sourceType: module
-  allowImportExportEverywhere: true
-  ecmaVersion: 2017
+  ecmaVersion: latest
 
 rules:
   quotes: [warn, single]

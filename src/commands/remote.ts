@@ -34,14 +34,15 @@ export default command({
     }
   },
   async handle(p) {
+    
     // p.wip() // TODO: wip
     // throw new BotCommandError('exec', '🚧 수정중이니 좀만 기달')
     if(!p.isAdmin) throw new BotCommandError('exec', '이 명령어를 실행할 권한이 없습니다.\nDocker 컨테이너를 통한 실행은.. 기다려 주세요. ㄱㄷㄱㄷ')
     
-    if(p.author.id !== '551597391741059083') {
-      p.reply('하지만 주인장이 아니었다')
-      return
-    }
+    // if(p.author.id !== '551597391741059083') {
+    //   p.reply('하지만 주인장이 아니었다')
+    //   return
+    // }
 
     if(!p.content) {
       throw new BotCommandError('exec', '실행할 프로그램 이름을 입력해주세요.')
@@ -144,6 +145,7 @@ export default command({
           }
           case 'kill': {
             process.kill()
+            p.reply('정상적으로 프로세스를 종료했습니다.')
             break
           }
         }

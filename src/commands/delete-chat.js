@@ -3,6 +3,9 @@ import { BotCommandError } from '../command-parameter'
 import { delay } from '../utils'
 
 
+const logFile = '../config/delete/backup.txt'
+
+
 export default command({
   items: {
     delete: {
@@ -22,12 +25,13 @@ export default command({
     await delay(500)
 
     for(let i = 0; i < loops; i++) {
+      
       await p.channel.bulkDelete(100)
     }
     if(extra > 0) await p.channel.bulkDelete(extra)
 
     const message = await p.reply(`✅ 메시지 ${count}개를 뭉탱이로 삭제 완료`)
-    // await delay(3000)
-    // await message.delete()
+    await delay(3000)
+    await message.delete()
   }
 })

@@ -6,10 +6,11 @@ commands:
     help:
       - help
     youtube:
-      - now
-      - play
-      - next
-      - stop
+      - now: [playing, queue, 재생중]
+      - play: [재생]
+      - next: [skip, 건너뛰기]
+      - stop: [정지]
+      - replace: [바꾸기]
     hi:
       - hi
     cleanup-mine:

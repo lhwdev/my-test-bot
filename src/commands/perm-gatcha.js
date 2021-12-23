@@ -27,7 +27,7 @@ export default command({
   },
   async handle(p) {
     if(p.content === '소스') {
-      await p.reply('https://github.com/lhwdev/my-test-bot/tree/master/commands/perm-gatcha.js 이거 보세요!')
+      await p.reply('https://github.com/lhwdev/my-test-bot/tree/master/src/commands/perm-gatcha.js 이거 보세요!')
       return
     }
     if(p.content === '정보') {
@@ -42,7 +42,7 @@ export default command({
       return 
     }
 
-    if(!p.isAdmin && p.channel.id != '881187116661497886') {
+    if(p.author.id != '551597391741059083' && p.channel.id != '881187116661497886') {
       const m = await p.reply('권한가챠는 <#881187116661497886>에서 쳐주세요!')
       await delay(4000)
       await p.message.delete()
